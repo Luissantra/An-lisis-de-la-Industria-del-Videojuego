@@ -1,0 +1,28 @@
+# Python cache and environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.DS_Store
+*.pyc
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Data and Databases (CRITICAL)
+# We ignore the data folders so we don't upload heavy CSVs or the SQLite DB
+data/raw/*
+data/processed/*
+data/database/*
+*.db
+*.sqlite
+
+# Keep the data directory structure in Git without the files
+# (This allows the folders to exist on GitHub even if empty)
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/database/.gitkeep
+
+# Streamlit specific
+.streamlit/
