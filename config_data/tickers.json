@@ -1,0 +1,38 @@
+{
+    
+    "MSFT": {"name": "Microsoft Corporation", "category": "Consolas y Ecosistemas"},
+    "SONY": {"name": "Sony Group Corporation", "category": "Consolas y Ecosistemas"},
+    "NTDOY": {"name": "Nintendo Co., Ltd.", "category": "Consolas y Ecosistemas"},
+    
+  
+    "AAPL": {"name": "Apple", "category": "Plataformas de Distribución"},
+    "GOOGL": {"name": "Alphabet", "category": "Plataformas de Distribución"},
+    
+    "EA": {"name": "Electronic Arts", "category": "Desarrolladores/Publishers"},
+    "TTWO": {"name": "Take-Two Interactive", "category": "Desarrolladores/Publishers"},
+    "RBLX": {"name": "Roblox Corporation", "category": "Desarrolladores/Publishers"},
+    "TCEHY": {"name": "Tencent Holdings", "category": "Desarrolladores/Publishers"},
+    "NTES": {"name": "NetEase", "category": "Desarrolladores/Publishers"},
+    "UBSFY": {"name": "Ubisoft Entertainment", "category": "Desarrolladores/Publishers"},
+    "CCOEY": {"name": "Capcom Co.", "category": "Desarrolladores/Publishers"},
+    "NCBDY": {"name": "Bandai Namco", "category": "Desarrolladores/Publishers"},
+    "SQNNY": {"name": "Square Enix", "category": "Desarrolladores/Publishers"},
+    "KONMY": {"name": "Konami Group", "category": "Desarrolladores/Publishers"},
+    "SGAMY": {"name": "Sega Sammy", "category": "Desarrolladores/Publishers"},
+    "OTGLY": {"name": "CD Projekt Red", "category": "Desarrolladores/Publishers"},
+    
+    "NVDA": {"name": "NVIDIA Corporation", "category": "Hardware e Infraestructura"},
+    "AMD": {"name": "Advanced Micro Devices", "category": "Hardware e Infraestructura"},
+    "U": {"name": "Unity Software", "category": "Motores y Herramientas"},
+    "APP": {"name": "AppLovin Corporation", "category": "Motores y Herramientas"},
+    
+    "LOGI": {"name": "Logitech International", "category": "Periféricos y Retail"},
+    "CRSR": {"name": "Corsair Gaming", "category": "Periféricos y Retail"},
+    "GME": {"name": "GameStop Corp.", "category": "Periféricos y Retail"},
+    
+    "SE": {"name": "Sea Limited (Garena)", "category": "Mobile y Otros"},
+    "PLTK": {"name": "Playtika Holding", "category": "Mobile y Otros"},
+    
+    "^IXIC": {"name": "Nasdaq Composite", "category": "Índice de Mercado (Tech)"},
+    "^GSPC": {"name": "S&P 500", "category": "Índice de Mercado (General)"}
+}

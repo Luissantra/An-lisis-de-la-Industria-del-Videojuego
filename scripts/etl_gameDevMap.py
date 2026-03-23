@@ -1,10 +1,5 @@
 import pandas as pd
-import os
-from pathlib import Path
 import pycountry_convert as pc
-import sys
-# Añadir la raíz al path para poder importar config
-sys.path.append(str(Path(__file__).resolve().parent.parent))
 import config
 
 def obtain_region(country_name):

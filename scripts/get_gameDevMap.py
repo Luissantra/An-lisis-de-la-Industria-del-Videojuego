@@ -9,15 +9,22 @@ import requests
 from bs4 import BeautifulSoup
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
-from pathlib import Path
-import sys
-# Añadir la raíz al path para poder importar config
-sys.path.append(str(Path(__file__).resolve().parent.parent))
 import config
+import json
 
 # Force requests/geopy to use certifi CA bundle (fixes SSL verification issues on macOS)
 os.environ.setdefault('SSL_CERT_FILE', certifi.where())
 
+
+def cargar_estudios_notables():
+    """Carga la lista de estudios notables desde el archivo JSON."""
+    ruta_json = config.NOTABLE_STUDIOS_JSON
+    try:
+        with open(ruta_json, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"[Advertencia] No se encontró el archivo {ruta_json}. Se usará una lista vacía.")
+        return []
 
 def get_available_locations(base_url):
     """Obtiene todos los valores de `location=` disponibles en la página principal.
@@ -255,9 +262,88 @@ def geocode_studios(input_csv, output_csv, cache_csv="geocode_cache.csv"):
     return result_df
 
 # --- EJECUCIÓN PRINCIPAL ---
-if __name__ == "__main__":
+def obtener_datos_gamedevmap(
+    location="Tucson", 
+    all_locations=False, 
+    max_locations=None, 
+    output=None, 
+    skip_geocode=False, 
+    delay=1.0, 
+    force_scrape=False
+):
+    if output is None:
+        output = config.RAW_GAMEDEVMAP_CSV
+        
     base_url = "https://www.gamedevmap.com/index.php"
+    
+    # Nos aseguramos de que el directorio exista
+    salida_path = str(output)
+    os.makedirs(os.path.dirname(salida_path) if os.path.dirname(salida_path) else '.', exist_ok=True)
 
+    # --- 1. DEFINIMOS LA LISTA DE NOTABLES ---
+    notable_studios_data = cargar_estudios_notables()
+    df_notable = pd.DataFrame(notable_studios_data)
+    if 'Studio Name' in df_notable.columns:
+        df_notable.rename(columns={'Studio Name': 'Company_Name'}, inplace=True)
+        
+    df_notable['Location'] = 'Custom Notable List'
+
+    # --- 2. LÓGICA DE DATOS (Cargar o Scrapear) ---
+    if os.path.exists(output) and not force_scrape:
+        print(f"\n[INFO] El archivo '{output}' ya existe.")
+        print("[INFO] Cargando datos existentes para inyectar la lista de notables...")
+        raw_data = pd.read_csv(output, dtype=str)
+    else:
+        print("\n[INFO] Iniciando fase de web scraping...")
+        if all_locations:
+            locations = get_available_locations(base_url)
+            if max_locations:
+                locations = locations[: max_locations]
+        else:
+            locations = [location]
+
+        if not locations:
+            print("No se encontraron ubicaciones para procesar.")
+            return # Cambiamos el SystemExit por un simple return para no matar el pipeline entero
+
+        all_frames = []
+        for i, loc in enumerate(locations, start=1):
+            loc_encoded = urllib.parse.quote_plus(loc)
+            target_url = f"{base_url}?location={loc_encoded}"
+
+            df = extract_gamedev_data(target_url, location=loc)
+            if not df.empty:
+                all_frames.append(df)
+
+            if delay and i < len(locations):
+                time.sleep(delay)
+
+        if all_frames:
+            raw_data = pd.concat(all_frames, ignore_index=True)
+        else:
+            print("[INFO] No se extrajeron datos de la web. Se creará un dataset solo con notables.")
+            raw_data = pd.DataFrame(columns=['Company_Name', 'City', 'Country', 'Location'])
+
+    # --- 3. INYECCIÓN Y GUARDADO ---
+    print("\n[INFO] Inyectando lista de estudios notables y limpiando duplicados...")
+    raw_data = pd.concat([raw_data, df_notable], ignore_index=True)
+    
+    # Eliminamos duplicados dando prioridad a los notables (keep='last')
+    raw_data.drop_duplicates(subset=['Company_Name'], keep='last', inplace=True)
+    
+    raw_data.to_csv(output, index=False, encoding='utf-8')
+    print(f"[INFO] Se han guardado {len(raw_data)} filas en: {output}")
+
+    # --- 4. FASE DE GEOCODIFICACIÓN ---
+    if not skip_geocode:
+        geo_output = str(output).replace('.csv', '_geocoded.csv')
+        processed_df = geocode_studios(output, geo_output)
+        print(f"\n[INFO] Geocodificación completada. Archivo generado: {geo_output}")
+    else:
+        print("\n[INFO] La geocodificación fue omitida (usar skip_geocode=True para desactivar).")
+
+# --- Mantenemos la capacidad de ejecutarlo suelto desde la terminal ---
+if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Extrae y geocodifica estudios de GameDevMap.")
@@ -271,133 +357,18 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    os.makedirs(os.path.dirname(args.output) if os.path.dirname(args.output) else '.', exist_ok=True)
+    # Llamamos a nuestra nueva función pasándole los argumentos
+    obtener_datos_gamedevmap(
+        location=args.location,
+        all_locations=args.all_locations,
+        max_locations=args.max_locations,
+        output=args.output,
+        skip_geocode=args.skip_geocode,
+        delay=args.delay,
+        force_scrape=args.force_scrape
+    )
 
-    # --- 1. DEFINIMOS LA LISTA DE NOTABLES ---
-    notable_studios_data = [
-        # --- GIGANTES DE LA INDUSTRIA (AAA / Major Publishers) ---
-        {"Studio Name": "Nintendo", "City": "Kyoto", "Country": "JAPAN"},
-        {"Studio Name": "Rockstar North", "City": "Edinburgh", "Country": "UNITED KINGDOM"},
-        {"Studio Name": "Naughty Dog", "City": "Santa Monica", "Country": "UNITED STATES"},
-        {"Studio Name": "Valve", "City": "Bellevue", "Country": "UNITED STATES"},
-        {"Studio Name": "CD Projekt Red", "City": "Warsaw", "Country": "POLAND"},
-        {"Studio Name": "Ubisoft Montreal", "City": "Montreal", "Country": "CANADA"},
-        {"Studio Name": "Epic Games", "City": "Cary", "Country": "UNITED STATES"},
-        {"Studio Name": "Bungie", "City": "Bellevue", "Country": "UNITED STATES"},
-        {"Studio Name": "Square Enix", "City": "Tokyo", "Country": "JAPAN"},
-        {"Studio Name": "Guerrilla Games", "City": "Amsterdam", "Country": "NETHERLANDS"},
-        {"Studio Name": "FromSoftware", "City": "Tokyo", "Country": "JAPAN"},
-        {"Studio Name": "Santa Monica Studio", "City": "Los Angeles", "Country": "UNITED STATES"},
-        {"Studio Name": "Insomniac Games", "City": "Burbank", "Country": "UNITED STATES"},
-        {"Studio Name": "BioWare", "City": "Edmonton", "Country": "CANADA"},
-        {"Studio Name": "Remedy Entertainment", "City": "Espoo", "Country": "FINLAND"},
-        {"Studio Name": "Capcom", "City": "Osaka", "Country": "JAPAN"},
-        {"Studio Name": "Bethesda Game Studios", "City": "Rockville", "Country": "UNITED STATES"},
-        {"Studio Name": "Larian Studios", "City": "Ghent", "Country": "BELGIUM"},
-        {"Studio Name": "Arkane Studios", "City": "Lyon", "Country": "FRANCE"},
-        {"Studio Name": "Sucker Punch Productions", "City": "Bellevue", "Country": "UNITED STATES"},
-        {"Studio Name": "Tencent Games", "City": "Shenzhen", "Country": "CHINA"},
-        {"Studio Name": "miHoYo (HoYoverse)", "City": "Shanghai", "Country": "CHINA"},
-        {"Studio Name": "Sega", "City": "Tokyo", "Country": "JAPAN"},
-        {"Studio Name": "Bandai Namco", "City": "Tokyo", "Country": "JAPAN"},
-        {"Studio Name": "PlatinumGames", "City": "Osaka", "Country": "JAPAN"},
-        {"Studio Name": "Asobo Studio", "City": "Bordeaux", "Country": "FRANCE"},
-        {"Studio Name": "IO Interactive", "City": "Copenhagen", "Country": "DENMARK"},
-        {"Studio Name": "DICE", "City": "Stockholm", "Country": "SWEDEN"},
-        {"Studio Name": "Creative Assembly", "City": "Horsham", "Country": "UNITED KINGDOM"},
-        {"Studio Name": "Playground Games", "City": "Leamington Spa", "Country": "UNITED KINGDOM"},
-        {"Studio Name": "MercurySteam", "City": "San Sebastián de los Reyes", "Country": "SPAIN"},
-        {"Studio Name": "4A Games", "City": "Sliema", "Country": "MALTA"},
-        {"Studio Name": "Respawn Entertainment", "City": "Sherman Oaks", "Country": "UNITED STATES"},
-        {"Studio Name": "Riot Games", "City": "Los Angeles", "Country": "UNITED STATES"},
-        {"Studio Name": "Blizzard Entertainment", "City": "Irvine", "Country": "UNITED STATES"},
-        {"Studio Name": "Obsidian Entertainment", "City": "Irvine", "Country": "UNITED STATES"},
-        {"Studio Name": "NetherRealm Studios", "City": "Chicago", "Country": "UNITED STATES"},
-        {"Studio Name": "Bluepoint Games", "City": "Austin", "Country": "UNITED STATES"},
-        {"Studio Name": "The Coalition", "City": "Vancouver", "Country": "CANADA"},
-        {"Studio Name": "Kojima Productions", "City": "Tokyo", "Country": "JAPAN"},
-        {"Studio Name": "id Software", "City": "Richardson", "Country": "UNITED STATES"},
-        {"Studio Name": "Game Science", "City": "Hangzhou", "Country": "CHINA"},
-        {"Studio Name": "Shift Up", "City": "Seoul", "Country": "SOUTH KOREA"},
 
-        # --- LEYENDAS Y REFERENTES INDEPENDIENTES (Indie / Triple I) ---
-        {"Studio Name": "Team Cherry", "City": "Adelaide", "Country": "AUSTRALIA"}, 
-        {"Studio Name": "Supergiant Games", "City": "San Francisco", "Country": "UNITED STATES"}, 
-        {"Studio Name": "Hello Games", "City": "Guildford", "Country": "UNITED KINGDOM"}, 
-        {"Studio Name": "Hazelight Studios", "City": "Stockholm", "Country": "SWEDEN"}, 
-        {"Studio Name": "Subset Games", "City": "Shanghai", "Country": "CHINA"}, 
-        {"Studio Name": "Motion Twin", "City": "Bordeaux", "Country": "FRANCE"}, 
-        {"Studio Name": "Re-Logic", "City": "Indiana", "Country": "UNITED STATES"}, 
-        {"Studio Name": "ConcernedApe", "City": "Seattle", "Country": "UNITED STATES"}, 
-        {"Studio Name": "Playdead", "City": "Copenhagen", "Country": "DENMARK"}, 
-        {"Studio Name": "Giant Sparrow", "City": "Santa Monica", "Country": "UNITED STATES"}, 
-        {"Studio Name": "Mobius Digital", "City": "Los Angeles", "Country": "UNITED STATES"}, 
-        {"Studio Name": "InnerSloth", "City": "Redmond", "Country": "UNITED STATES"}, 
-        {"Studio Name": "Toby Fox", "City": "Boston", "Country": "UNITED STATES"}, 
-        {"Studio Name": "Iron Gate Studio", "City": "Skövde", "Country": "SWEDEN"}, 
-        {"Studio Name": "Maddy Makes Games", "City": "Vancouver", "Country": "CANADA"}, 
-        {"Studio Name": "Sabotage Studio", "City": "Quebec City", "Country": "CANADA"}, 
-        {"Studio Name": "Frictional Games", "City": "Helsingborg", "Country": "SWEDEN"}, 
-        {"Studio Name": "Wube Software", "City": "Prague", "Country": "CZECH REPUBLIC"}, 
-        {"Studio Name": "Unknown Worlds", "City": "San Francisco", "Country": "UNITED STATES"}, 
-        {"Studio Name": "Mega Crit", "City": "Seattle", "Country": "UNITED STATES"}, 
-        {"Studio Name": "Nomada Studio", "City": "Barcelona", "Country": "SPAIN"}, 
-        {"Studio Name": "Deconstructeam", "City": "Valencia", "Country": "SPAIN"}, 
-        {"Studio Name": "Behemoth", "City": "San Diego", "Country": "UNITED STATES"} 
-    ]
-    df_notable = pd.DataFrame(notable_studios_data)
-    df_notable.rename(columns={'Studio Name': 'Company_Name'}, inplace=True)
-    df_notable['Location'] = 'Custom Notable List'
 
-    # --- 2. LÓGICA DE DATOS (Cargar o Scrapear) ---
-    if os.path.exists(args.output) and not args.force_scrape:
-        print(f"\n[INFO] El archivo '{args.output}' ya existe.")
-        print("[INFO] Cargando datos existentes para inyectar la lista de notables...")
-        raw_data = pd.read_csv(args.output, dtype=str)
-    else:
-        print("\n[INFO] Iniciando fase de web scraping...")
-        if args.all_locations:
-            locations = get_available_locations(base_url)
-            if args.max_locations:
-                locations = locations[: args.max_locations]
-        else:
-            locations = [args.location]
 
-        if not locations:
-            print("No se encontraron ubicaciones para procesar.")
-            raise SystemExit(1)
 
-        all_frames = []
-        for i, loc in enumerate(locations, start=1):
-            loc_encoded = urllib.parse.quote_plus(loc)
-            target_url = f"{base_url}?location={loc_encoded}"
-
-            df = extract_gamedev_data(target_url, location=loc)
-            if not df.empty:
-                all_frames.append(df)
-
-            if args.delay and i < len(locations):
-                time.sleep(args.delay)
-
-        if all_frames:
-            raw_data = pd.concat(all_frames, ignore_index=True)
-        else:
-            print("[INFO] No se extrajeron datos de la web. Se creará un dataset solo con notables.")
-            raw_data = pd.DataFrame(columns=['Company_Name', 'City', 'Country', 'Location'])
-
-    # --- 3. INYECCIÓN Y GUARDADO ---
-    print("\n[INFO] Inyectando lista de estudios notables y limpiando duplicados...")
-    raw_data = pd.concat([raw_data, df_notable], ignore_index=True)
-    # Eliminamos duplicados dando prioridad a los notables (keep='last')
-    raw_data.drop_duplicates(subset=['Company_Name'], keep='last', inplace=True)
-    
-    raw_data.to_csv(args.output, index=False, encoding='utf-8')
-    print(f"[INFO] Se han guardado {len(raw_data)} filas en: {args.output}")
-
-    # --- 4. FASE DE GEOCODIFICACIÓN ---
-    if not args.skip_geocode:
-        geo_output = args.output.replace('.csv', '_geocoded.csv')
-        processed_df = geocode_studios(args.output, geo_output)
-        print(f"\n[INFO] Geocodificación completada. Archivo generado: {geo_output}")
-    else:
-        print("\n[INFO] La geocodificación fue omitida (usar --skip-geocode para desactivar).")

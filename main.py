@@ -1,26 +1,10 @@
-import subprocess
-import sys
-import argparse 
-from pathlib import Path
+import argparse
+import config
+from scripts.get_market_data import obtener_datos_preparados
+from scripts.get_gameDevMap import obtener_datos_gamedevmap
+from scripts.etl_gameDevMap import run_geo_etl
+from scripts.build_db import build_database
 
-# Calcula dinámicamente la ruta al directorio raíz del proyecto
-BASE_DIR = Path(__file__).resolve().parent
-
-def run_script(script):
-    """
-    Ejecuta un script dada su ruta
-    """
-
-    script_path = BASE_DIR / script
-    print(f"Ejecutando {script_path}...")
-
-    result = subprocess.run([sys.executable, str(script_path)])
-
-    if result.returncode != 0:
-        print(f"Error al ejecutar {script_path}. Código de salida: {result.returncode}")
-        sys.exit(result.returncode)
-    else:
-        print(f"{script_path} ejecutado exitosamente.")
 
 def run_pipeline():
   """
@@ -28,7 +12,7 @@ def run_pipeline():
   """
 
   # --- Configuración de argumentos ---
-  parser = argparse.ArgumentParser(description="(Orquestador del pipeline) Ejecuta la pipeline de ETL y construcción de la base de datos.")
+  parser = argparse.ArgumentParser(description="(Orquestador) Ejecuta la pipeline de ETL y construcción de la base de datos.")
 
   # Añadimos flags para saltar pasos específicos
   parser.add_argument("--skip-extract", action="store_true", help="Saltar la fase de extracción de datos.")
@@ -37,22 +21,29 @@ def run_pipeline():
 
   args = parser.parse_args()
 
-  # Extracción de datos
+  # 0. Inicializamos el entorno 
+  print("Inicializando entorno...")
+  config.init_environment()
+
+  # 1. Extracción de datos
   if not args.skip_extract:
-      run_script("scripts/get_market_data.py")
-      #run_script("scripts/get_gameDevMap.py")
+      print("Ejecutando fase de extracción de datos...")
+      obtener_datos_preparados()
+      obtener_datos_gamedevmap(all_locations=True)  # Obtenemos datos de todas las ubicaciones
   else:
       print("Saltando fase de extracción de datos...")
 
-  # Transformación (ETL)
+  # 2. Transformación (ETL)
   if not args.skip_transform:
-      run_script("scripts/etl_gameDevMap.py")
+      print("Ejecutando fase de transformación de datos...")
+      run_geo_etl()
   else:
       print("Saltando fase de transformación de datos...")
   
-  # Carga a la base de datos
+  # 3. Carga a la base de datos
   if not args.skip_load:
-      run_script("scripts/build_db.py") 
+      print("Ejecutando fase de carga a la base de datos...")
+      build_database()
   else:
       print("Saltando fase de carga a la base de datos...")
 

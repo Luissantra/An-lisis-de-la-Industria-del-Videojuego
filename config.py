@@ -9,11 +9,10 @@ RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 DATABASE_DIR = DATA_DIR / "database"
 
-# Nos aseguramos de que los directorios existan
-for directory in [RAW_DATA_DIR, PROCESSED_DATA_DIR, DATABASE_DIR]:
-    directory.mkdir(parents=True, exist_ok=True)
-
 # Rutas a archivos específicos
+TICKERS_JSON = BASE_DIR / "config_data" / "tickers.json"
+NOTABLE_STUDIOS_JSON = BASE_DIR / "config_data" / "notable_studios.json"
+
 RAW_GAMEDEVMAP_CSV = RAW_DATA_DIR / "raw_studios_geocoded.csv"
 GAMEDEVMAP_CSV = PROCESSED_DATA_DIR / "studios_geocoded.csv"
 
@@ -22,4 +21,7 @@ MARKETDATA_CSV = PROCESSED_DATA_DIR / "market_data.csv"
 
 DATABASE_PATH = DATABASE_DIR / "videogames.db"
 
-
+def init_environment():
+    """Crea la estructura de directorios necesaria si no existe."""
+    for directory in [RAW_DATA_DIR, PROCESSED_DATA_DIR, DATABASE_DIR]:
+        directory.mkdir(parents=True, exist_ok=True)

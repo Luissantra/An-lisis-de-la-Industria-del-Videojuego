@@ -1,51 +1,40 @@
 import pandas as pd
 from sqlalchemy import create_engine
-from pathlib import Path
-import sys
+import os
 
-# Añadir la raíz al path para poder importar config
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+# Importación limpia sin hacks
 import config
-
-# Calcula dinámicamente la ruta al directorio raíz del proyecto
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 def build_database():
     """
-    Construye la base de datos a partir de los dataset CSVs.
+    Construye la base de datos a partir de los dataset CSVs procesados.
     """
     print("Construyendo la base de datos...")
 
-    # Crear una conexión a la base de datos SQLite
+    # Crear una conexión a la base de datos SQLite usando SQLAlchemy
     engine = create_engine(f'sqlite:///{config.DATABASE_PATH}')
     print("Conexión con la base de datos establecida.")
 
-
-    # --- Tabla GameDevMap ---
-    if config.GAMEDEVMAP_CSV.exists():
+    # --- Tabla GameDevMap (Estudios) ---
+    if os.path.exists(config.GAMEDEVMAP_CSV):
         print(f" - Cargando datos desde {config.GAMEDEVMAP_CSV}...")
         df_geo = pd.read_csv(config.GAMEDEVMAP_CSV)
-        # Escribimos el DataFrame a la base de datos, reemplazando la tabla si ya existe
-        df_geo.to_sql('studio_locations', con=engine, if_exists='replace', index=False)
-        print("Tabla studio_locations creada y datos insertados.")
-    else:
-        print(f" - Advertencia: No se encontró el archivo {config.GAMEDEVMAP_CSV}. Saltando la creación de la tabla studio_locations.")
         
-    # --- Tabla Stock_Prices ---
-    if config.MARKETDATA_CSV.exists():
+        # Escribimos el DataFrame a la base de datos
+        df_geo.to_sql('studio_locations', con=engine, if_exists='replace', index=False)
+        print(" [OK] Tabla 'studio_locations' creada y datos insertados.")
+    else:
+        print(f" [Advertencia] No se encontró {config.GAMEDEVMAP_CSV}. Ejecuta el pipeline de ETL primero.")
+        
+    # --- Tabla Stock_Prices (Bolsa) ---
+    if os.path.exists(config.MARKETDATA_CSV):
         print(f" - Cargando datos desde {config.MARKETDATA_CSV}...")
         df_market = pd.read_csv(config.MARKETDATA_CSV)
+        
         df_market.to_sql('stock_prices', con=engine, if_exists='replace', index=False)
-        print("Tabla stock_prices creada y datos insertados.")
+        print(" [OK] Tabla 'stock_prices' creada y datos insertados.")
     else:
-        print(f" - Advertencia: No se encontró el archivo {config.MARKETDATA_CSV}. Saltando la creación de la tabla stock_prices.")
-   
-    
-
-
-    
-
-
+        print(f" [Advertencia] No se encontró {config.MARKETDATA_CSV}. Ejecuta la extracción de mercado primero.")
 
 if __name__ == "__main__":
     build_database()

@@ -2,6 +2,10 @@ beautifulsoup4==4.14.3
 certifi==2026.2.25
 geopy==2.4.1
 pandas==2.0.3
-Requests==2.32.5
+requests==2.32.5
 yfinance==1.2.0
 pycountry-convert==0.7.2
+streamlit==1.32.0
+streamlit-folium==0.19.0
+folium==0.16.0
+SQLAlchemy==2.0.29
