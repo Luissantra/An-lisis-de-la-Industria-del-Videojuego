@@ -57,17 +57,14 @@ def create_interactive_map(df, center=[20, 0], zoom=2):
 
         # Inicializamos el cluster
         region_cluster = MarkerCluster(icon_create_function=custom_js).add_to(region_layer)
+
         # Filtramos el DataFrame por región
         region_df = df[df['Region'] == region]
+        valid_locations = region_df.dropna(subset=['Lat', 'Lon'])
 
         # Añadimos las estudios de la región al cluster
-        for idx, row in region_df.iterrows():
+        for idx, row in valid_locations.iterrows():
             if pd.notna(row['Lat']) and pd.notna(row['Lon']):
-                
-                # Option 1 Implementation: Rich Data Popup. 
-                # Using .get() means it safely shows 'N/A' if you haven't added these columns yet!
-                founded = row.get('Founded', 'N/A')
-                employees = row.get('Employees', 'N/A')
                 
                 popup_html = f"""
                 <div style="font-family: Arial; min-width: 200px;">

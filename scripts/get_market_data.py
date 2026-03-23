@@ -1,6 +1,12 @@
+from pathlib import Path
 import yfinance as yf
 import pandas as pd
 import warnings
+import sys
+
+# Añadir la raíz al path para poder importar config
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+import config
 
 # Suprimir advertencias para mantener la consola limpia
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -104,7 +110,7 @@ def obtener_datos_preparados():
     final_df = df[cols_available]
 
     # Exportar
-    filename = 'data/raw/dataset_diario_videojuegos_categorizado.csv'
+    filename = config.MARKETDATA_CSV
     final_df.to_csv(filename, index=False)
     
     print(f"\n¡Éxito! CSV guardado como '{filename}'. Listo para Streamlit.")

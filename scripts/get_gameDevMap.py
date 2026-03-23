@@ -3,13 +3,17 @@ import ssl
 import time
 import urllib.parse
 import csv
-
 import certifi
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
+from pathlib import Path
+import sys
+# Añadir la raíz al path para poder importar config
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+import config
 
 # Force requests/geopy to use certifi CA bundle (fixes SSL verification issues on macOS)
 os.environ.setdefault('SSL_CERT_FILE', certifi.where())
@@ -260,7 +264,7 @@ if __name__ == "__main__":
     parser.add_argument("--location", default="Tucson", help="Nombre de la ubicación (ej: Tucson, Berlin, ...)")
     parser.add_argument("--all-locations", action="store_true", help="Extrae todas las ubicaciones.")
     parser.add_argument("--max-locations", type=int, default=None, help="Límite de ubicaciones (pruebas).")
-    parser.add_argument("--output", default="data/raw/raw_studios.csv", help="Ruta del CSV de salida.")
+    parser.add_argument("--output", default=config.RAW_GAMEDEVMAP_CSV, help="Ruta del CSV de salida.")
     parser.add_argument("--skip-geocode", action="store_true", help="No geocodificar (solo extraer).")
     parser.add_argument("--delay", type=float, default=1.0, help="Espera entre solicitudes.")
     parser.add_argument("--force-scrape", action="store_true", help="Fuerza el scraping aunque el CSV exista.")
