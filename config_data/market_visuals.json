@@ -1,0 +1,20 @@
+{
+    "brand_colors": {
+        "Sony Group Corporation": "#003791",
+        "Nintendo Co., Ltd.": "#E60012",
+        "Microsoft Corporation": "#107C10",
+        "Electronic Arts": "#FF4700",
+        "Take-Two Interactive": "#000000",
+        "Tencent Holdings": "#0052D9",
+        "Ubisoft Entertainment": "#0070FF",
+        "Apple": "#A2AAAD",
+        "Alphabet": "#34A853"
+    },
+    "key_events": [
+        {"date": "2020-11-12", "company": "Sony Group Corporation", "event": "Lanzamiento PS5"},
+        {"date": "2020-11-10", "company": "Microsoft Corporation", "event": "Lanzamiento Xbox Series X/S"},
+        {"date": "2017-03-03", "company": "Nintendo Co., Ltd.", "event": "Lanzamiento Switch"},
+        {"date": "2022-01-18", "company": "Microsoft Corporation", "event": "Anuncio Compra Activision"},
+        {"date": "2013-09-17", "company": "Take-Two Interactive", "event": "Lanzamiento GTA V"}
+    ]
+}

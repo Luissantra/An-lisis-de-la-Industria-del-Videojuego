@@ -12,6 +12,7 @@ DATABASE_DIR = DATA_DIR / "database"
 # Rutas a archivos específicos
 TICKERS_JSON = BASE_DIR / "config_data" / "tickers.json"
 NOTABLE_STUDIOS_JSON = BASE_DIR / "config_data" / "notable_studios.json"
+MARKET_VISUALS_JSON = BASE_DIR / "config_data" / "market_visuals.json"
 
 RAW_GAMEDEVMAP_CSV = RAW_DATA_DIR / "raw_studios_geocoded.csv"
 GAMEDEVMAP_CSV = PROCESSED_DATA_DIR / "studios_geocoded.csv"

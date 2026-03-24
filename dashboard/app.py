@@ -2,17 +2,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import sqlite3
-
 from pathlib import Path
-import sys
-
-# Añadir la raíz al path para poder importar config
-sys.path.append(str(Path(__file__).resolve().parent.parent))
 import config
-
 
 # Importamos nuestros módulos de visualización
 from view_map import render_map_module
+from view_market import render_market_module
 
 
 # Page Configuration
@@ -24,6 +19,8 @@ st.set_page_config(
 )
 
 # Data loading and caching
+
+# Dimensión geográfica (mapa)
 @st.cache_data(show_spinner="Cargando datos del mapa... Esto puede tardar unos segundos.")
 def load_geo_data():
   """
@@ -35,28 +32,58 @@ def load_geo_data():
   conn.close()
   return df
 
-@st.cache_data(show_spinner="Cargando datos de mercado... Esto puede tardar unos segundos.")
-def load_market_data():
+# Dimensión de mercado (bolsa)
+@st.cache_data(show_spinner="Cargando lista de activos...")
+def get_market_assets():
     """
-    Carga el dataset de market data preparado para el análisis.
+    Consulta a la BBDD y separa dinámicamente empresas de índices (benchmarks)
+    basándose en la columna 'Category'.
     """
     try:
         conn = sqlite3.connect(config.DATABASE_PATH)
-        df = pd.read_sql_query("SELECT * FROM stock_prices", conn)
-        # Convertimos la columna Date a formato fecha para que Streamlit la grafique bien
+        # Traemos nombres y categorías
+        query = 'SELECT DISTINCT "Company Name", "Category" FROM stock_prices'
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        
+        # Filtramos dinámicamente: Si la categoría contiene la palabra "Índice", es un benchmark
+        indices = df[df['Category'].str.contains('Índice', case=False, na=False)]['Company Name'].tolist()
+        empresas = df[~df['Category'].str.contains('Índice', case=False, na=False)]['Company Name'].tolist()
+        
+        # Las ordenamos alfabéticamente
+        return sorted(empresas), sorted(indices)
+    except Exception as e:
+        return [], []
+
+@st.cache_data(show_spinner="Consultando datos financieros...")
+def load_dynamic_market_data(selected_companies):
+    """
+    Carga el histórico de mercado SOLO para las empresas que el usuario ha seleccionado.
+    """
+    if not selected_companies:
+        return pd.DataFrame() # Si no hay selección, devolvemos un dataframe vacío rápido
+        
+    try:
+        conn = sqlite3.connect(config.DATABASE_PATH)
+        
+        # Construimos la consulta SQL con placeholders para evitar inyecciones y problemas de formato
+        placeholders = ','.join(['?'] * len(selected_companies))
+        query = f'SELECT * FROM stock_prices WHERE "Company Name" IN ({placeholders})'
+        
+        # Pasamos la lista de empresas como parámetros
+        df = pd.read_sql_query(query, conn, params=selected_companies)
         df['Date'] = pd.to_datetime(df['Date']) 
         conn.close()
+        
         return df
     except Exception as e:
-        # Si la tabla no existe aún, devolvemos un DataFrame vacío
         return pd.DataFrame()
-
     
   
 
 # Cargamos los datos
 df_studios = load_geo_data()
-df_market = load_market_data()
+
 
 
 
@@ -97,36 +124,37 @@ with tab2:
     st.dataframe(filtered_df, use_container_width=True, hide_index=True)
 
 with tab3:
-    st.markdown("### Rendimiento en Bolsa de Gigantes del Sector")
+    st.markdown("### Análisis Financiero de Gigantes del Sector")
     
-    if df_market.empty:
+    # 1. Obtenemos solo la lista de nombres de empresas y benchmarks
+    solo_empresa, indices = get_market_assets()
+    
+    if not solo_empresa:
         st.warning("No se encontraron datos financieros. Asegúrate de ejecutar el pipeline de datos (`python main.py`).")
     else:
-        # Filtro de empresas para el gráfico financiero
-        companies = sorted(df_market['Company Name'].unique().tolist())
-        # Por defecto mostramos un par interesantes
-        default_companies = [c for c in ["Nintendo Co., Ltd.", "Electronic Arts", "Microsoft Corporation"] if c in companies]
+        # 2. Selector de empresas
+        default_companies = [c for c in ["Nintendo Co., Ltd.", "Electronic Arts", "Microsoft Corporation"] if c in solo_empresa]
         
-        selected_companies = st.multiselect(
-            "Selecciona empresas para comparar:", 
-            options=companies, 
-            default=default_companies
-        )
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            selected_companies = st.multiselect(
+                "Selecciona empresas para comparar:", 
+                options=solo_empresa, 
+                default=default_companies
+            )
+        with col2:
+            selected_benchmark = st.selectbox(
+                "Selecciona un benchmark (opcional):", 
+                options=["Ninguno"] + indices
+            )
+
+        # Combinamos las empresas y el benchmark para hacer solo una consulta
+        query_companies = selected_companies.copy()
+        if selected_benchmark != "Ninguno":
+            query_companies.append(selected_benchmark)
         
-        if selected_companies:
-            # Filtramos los datos por las empresas seleccionadas
-            market_filtered = df_market[df_market['Company Name'].isin(selected_companies)]
-            
-            # Pivotamos los datos para que Streamlit los dibuje en varias líneas automáticamente
-            # Índice: Fecha | Columnas: Nombre de la Empresa | Valores: Rendimiento Acumulado
-            chart_data = market_filtered.pivot(index='Date', columns='Company Name', values='Cumulative_Return_%')
-            
-            st.markdown("#### Retorno Acumulado Histórico (%)")
-            st.line_chart(chart_data, use_container_width=True)
-            
-            # Un pequeño extra: Mostrar la categoría y ticker
-            st.markdown("#### Información de Tickers")
-            info_df = market_filtered[['Company Name', 'Ticker', 'Category']].drop_duplicates().reset_index(drop=True)
-            st.dataframe(info_df, use_container_width=True)
-        else:
-            st.info("Selecciona al menos una empresa para ver el gráfico.")
+        # 3. Carga dinámica. Solo pedimos a la BBDD lo que el usuario eligió.
+        df_market = load_dynamic_market_data(query_companies)
+        
+        # 4. Renderizamos toda la interfaz pasándole los datos
+        render_market_module(df_market, selected_companies, benchmark=selected_benchmark)
