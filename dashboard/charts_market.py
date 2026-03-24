@@ -61,6 +61,9 @@ def create_comparison_line_chart(df, timeframe, benchmark="Ninguno"):
                 font=dict(color=BRAND_COLORS.get(item["company"], "white"), size=10),
                 textangle=-45 
             )
+    # Añadimos el sufijo "%" al eje Y y redondeamos el texto flotante a 2 decimales
+    fig.update_yaxes(ticksuffix="%")
+    fig.update_traces(hovertemplate="<b>%{x}</b><br>Retorno: %{y:.2f}%")
 
     fig.update_layout(hovermode="x unified", margin=dict(t=80)) 
     return fig
@@ -69,18 +72,26 @@ def create_candlestick_chart(df, company_name, timeframe):
     """
     Vista Pro: Gráfico de velas japonesas con Volumen y Medias Móviles (SMA 50/200).
     """
-    # Definimos el subtítulo dinámico
-    if timeframe == "Max": gran_text = "Velas Mensuales"
-    elif timeframe == "5Y": gran_text = "Velas Semanales"
-    else: gran_text = "Velas Diarias"
+
     company_data = df[df['Company Name'] == company_name].sort_values('Date').copy()
     
-    # 1. Calcular Medias Móviles (SMA 50 y SMA 200)
-    # IMPORTANTE: Al cambiar de diario a mensual, las medias móviles de 50 y 200 periodos cambian de significado
-    # SMA 50 en gráfico mensual equivale a la media de 50 meses (4 años!).
-    company_data['SMA_50'] = company_data['Close'].rolling(window=50, min_periods=1).mean()
-    company_data['SMA_200'] = company_data['Close'].rolling(window=200, min_periods=1).mean()
-    
+    # 1. Lógica Adaptativa para Medias Móviles según Granularidad
+    if timeframe == "Max": 
+        gran_text = "Velas Mensuales"
+        w1, w2 = 12, 24  # 1 año y 2 años
+        label1, label2 = "SMA 12M", "SMA 24M"
+    elif timeframe == "5Y": 
+        gran_text = "Velas Semanales"
+        w1, w2 = 10, 40  # ~50 días y ~200 días
+        label1, label2 = "SMA 10W", "SMA 40W"
+    else: 
+        gran_text = "Velas Diarias"
+        w1, w2 = 50, 200 # Clásicas diarias
+        label1, label2 = "SMA 50D", "SMA 200D"
+
+    # Calculamos las medias dinámicas
+    company_data['SMA_1'] = company_data['Close'].rolling(window=w1, min_periods=1).mean()
+    company_data['SMA_2'] = company_data['Close'].rolling(window=w2, min_periods=1).mean()  
     # 2. Definir colores del volumen (Verde si cierra más alto de lo que abrió, Rojo si cierra más bajo)
     company_data['Volume_Color'] = company_data.apply(
         lambda row: '#26A69A' if row['Close'] >= row['Open'] else '#EF5350', axis=1
@@ -106,18 +117,18 @@ def create_candlestick_chart(df, company_name, timeframe):
         decreasing_line_color='#EF5350'  # Rojo moderno
     ), row=1, col=1)
 
-    # Añadir Media Móvil 50 (Fila 1)
+    # Añadir Media Móvil Rápida (Fila 1)
     fig.add_trace(go.Scatter(
-        x=company_data['Date'], y=company_data['SMA_50'],
-        mode='lines', line=dict(color='rgba(255, 165, 0, 0.8)', width=1.5), # Naranja
-        name='SMA 50'
+        x=company_data['Date'], y=company_data['SMA_1'],
+        mode='lines', line=dict(color='rgba(255, 165, 0, 0.8)', width=1.5), 
+        name=label1
     ), row=1, col=1)
 
-    # Añadir Media Móvil 200 (Fila 1)
+    # Añadir Media Móvil Lenta (Fila 1)
     fig.add_trace(go.Scatter(
-        x=company_data['Date'], y=company_data['SMA_200'],
-        mode='lines', line=dict(color='rgba(135, 206, 250, 0.8)', width=1.5), # Azul celeste
-        name='SMA 200'
+        x=company_data['Date'], y=company_data['SMA_2'],
+        mode='lines', line=dict(color='rgba(135, 206, 250, 0.8)', width=1.5), 
+        name=label2
     ), row=1, col=1)
 
     # Añadir Volumen (Fila 2)
@@ -152,9 +163,29 @@ def create_candlestick_chart(df, company_name, timeframe):
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1) # Leyenda horizontal arriba
     )
 
-    # Nombres de los ejes Y
-    fig.update_yaxes(title_text="Precio (USD)", row=1, col=1)
-    fig.update_yaxes(title_text="Volumen", row=2, col=1)
+    # Nombres y Formateo de los ejes Y
+    # Eje superior (Precios): Le ponemos el símbolo del dólar y 2 decimales fijos
+    fig.update_yaxes(
+        title_text="Precio (USD)", 
+        tickprefix="$", 
+        tickformat=".2f", 
+        row=1, col=1
+    )
+    
+    # Eje inferior (Volumen): Usamos '.2s' para que Plotly convierta automáticamente
+    # números enormes en formato legible (ej: 15000000 -> 15M, 50000 -> 50k)
+    fig.update_yaxes(
+        title_text="Volumen", 
+        tickformat=".2s", 
+        row=2, col=1
+    )
+
+    # Actualizamos los tooltips de las medias móviles para que salgan con el símbolo $
+    fig.update_traces(
+        selector=dict(type='scatter'), 
+        hovertemplate="Fecha: %{x}<br>Precio: %{y:$.2f}<extra></extra>",
+        row=1, col=1
+    )
     
     # Ocultar fines de semana y festivos en el eje X para no ver huecos vacíos en las velas
     fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])], row=1, col=1)

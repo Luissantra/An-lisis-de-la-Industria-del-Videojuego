@@ -87,74 +87,66 @@ df_studios = load_geo_data()
 
 
 
+# --- Navegación Principal ---
+st.title("🎮 Análisis de la Industria del Videojuego")
+menu = st.sidebar.radio(
+    "Selecciona una dimensión:",
+    ["Mapa de estudios", "Análisis de mercado"]
+)
 
-# Filtros de ubicación
-# Interfaz de usuario
-st.sidebar.header("Filtros de Ubicación")
+st.sidebar.divider()
 
-# Creamos una lista de países únicos para el filtro y una opción de todos
-country_list = ["Todos"] + sorted(df_studios['Country'].dropna().unique().tolist())
-selected_country = st.sidebar.selectbox("Selecciona un país:", country_list)
+# --- Módulo 1: Dimensión Geográfica (Mapa de Estudios) ---
+if menu == "Mapa de estudios":
+    st.sidebar.header("Filtros de Ubicación")
 
-# Añadimos una caja de texto para filtrar por estudios
-search_query = st.sidebar.text_input("Buscar por nombre de estudio:")
+    country_list = ["Todos"] + sorted(df_studios['Country'].dropna().unique().tolist())
+    selected_country = st.sidebar.selectbox("Selecciona un país:", country_list)
+    search_query = st.sidebar.text_input("Buscar por nombre de estudio:")
 
-# Aplicamos los filtros al dataframe
-filtered_df = df_studios.copy()
+    # Aplicamos filtros
+    filtered_df = df_studios.copy()
+    if selected_country != "Todos":
+        filtered_df = filtered_df[filtered_df['Country'] == selected_country]
+    if search_query:
+        filtered_df = filtered_df[filtered_df['Studio Name'].str.contains(search_query, case=False, na=False)]
 
-# Filtro de country
-if selected_country != "Todos":
-    filtered_df = filtered_df[filtered_df['Country'] == selected_country]
-
-# Filtro de búsqueda por nombre de estudio
-if search_query:
-    filtered_df = filtered_df[filtered_df['Studio Name'].str.contains(search_query, case=False, na=False)]
-
-
-
-# Renderizamos los módulos
-tab1, tab2, tab3 = st.tabs(["Mapa Interactivo", "Datos en Tabla", "Análisis de Mercado"])
-
-with tab1:
+    # Renderizamos el mapa
     render_map_module(filtered_df)
-
-with tab2:
-    # Añadimos una sección con la lista de la base de datos
-    st.expander("Ver datos en formato tabla")
-    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
-
-with tab3:
-    st.markdown("### Análisis Financiero de Gigantes del Sector")
     
-    # 1. Obtenemos solo la lista de nombres de empresas y benchmarks
+    # Colocamos la tabla justo debajo del mapa 
+    st.divider()
+    with st.expander("📊 Ver directorio completo en formato tabla"):
+        st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+
+# --- Módulo 2: Dimensión de Mercado (Análisis Financiero) ---
+elif menu == "Análisis de mercado":
+    st.title("Análisis Financiero de Gigantes del Sector")
+    
     solo_empresa, indices = get_market_assets()
     
     if not solo_empresa:
-        st.warning("No se encontraron datos financieros. Asegúrate de ejecutar el pipeline de datos (`python main.py`).")
+        st.warning("No se encontraron datos financieros. Ejecuta el pipeline de datos primero.")
     else:
-        # 2. Selector de empresas
         default_companies = [c for c in ["Nintendo Co., Ltd.", "Electronic Arts", "Microsoft Corporation"] if c in solo_empresa]
         
+        # OJO: Estos controles ahora están en la pantalla principal de este módulo, 
+        # pero también podrías pasarlos al sidebar si quisieras. Por ahora los dejamos aquí.
         col1, col2 = st.columns([2, 1])
         with col1:
-            selected_companies = st.multiselect(
-                "Selecciona empresas para comparar:", 
-                options=solo_empresa, 
-                default=default_companies
-            )
+            selected_companies = st.multiselect("Empresas a comparar:", options=solo_empresa, default=default_companies)
         with col2:
-            selected_benchmark = st.selectbox(
-                "Selecciona un benchmark (opcional):", 
-                options=["Ninguno"] + indices
-            )
+            selected_benchmark = st.selectbox("Benchmark (opcional):", options=["Ninguno"] + indices)
 
-        # Combinamos las empresas y el benchmark para hacer solo una consulta
         query_companies = selected_companies.copy()
         if selected_benchmark != "Ninguno":
             query_companies.append(selected_benchmark)
         
-        # 3. Carga dinámica. Solo pedimos a la BBDD lo que el usuario eligió.
         df_market = load_dynamic_market_data(query_companies)
-        
-        # 4. Renderizamos toda la interfaz pasándole los datos
         render_market_module(df_market, selected_companies, benchmark=selected_benchmark)
+
+
+
+
+
+

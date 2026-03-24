@@ -1,20 +1,44 @@
 {
     "brand_colors": {
-        "Sony Group Corporation": "#003791",
+        "Sony Group Corporation": "#000000",
         "Nintendo Co., Ltd.": "#E60012",
-        "Microsoft Corporation": "#107C10",
-        "Electronic Arts": "#FF4700",
+        "Microsoft Corporation": "#107C11",
+        "Electronic Arts": "#FF4545",
         "Take-Two Interactive": "#000000",
-        "Tencent Holdings": "#0052D9",
+        "Tencent Holdings": "#3458B0",
         "Ubisoft Entertainment": "#0070FF",
         "Apple": "#A2AAAD",
-        "Alphabet": "#34A853"
+        "Alphabet": "#34A853",
+        "NetEase": "#E20000",
+        "Capcom": "Blue/Yellow",
+        "Square Enix": "#E20A16",
+        "Sega Sammy": "#0060A8",
+        "Konami Group": "#BF0021",
+        "Bandai Namco": "#E60000"
     },
     "key_events": [
-        {"date": "2020-11-12", "company": "Sony Group Corporation", "event": "Lanzamiento PS5"},
-        {"date": "2020-11-10", "company": "Microsoft Corporation", "event": "Lanzamiento Xbox Series X/S"},
+        {"date": "1991", "company": "Capcom", "event": "Street Fighter II inicia el boom de los arcades"},
+        {"date": "1996", "company": "Konami Group", "event": "Lanzamiento de Metal Gear Solid"},
+        {"date": "2003", "company": "Square Enix", "event": "Fusión de Square y Enix"},
+        {"date": "2004", "company": "Sega Sammy", "event": "Fusión de Sega y Sammy Corp"},
+        {"date": "2005", "company": "Bandai Namco", "event": "Fusión de Bandai y Namco"},
+        {"date": "2013-09-17", "company": "Take-Two Interactive", "event": "Lanzamiento GTA V"},
         {"date": "2017-03-03", "company": "Nintendo Co., Ltd.", "event": "Lanzamiento Switch"},
+        {"date": "2020-11-10", "company": "Microsoft Corporation", "event": "Lanzamiento Xbox Series X/S"},
+        {"date": "2020-11-12", "company": "Sony Group Corporation", "event": "Lanzamiento PS5"},
         {"date": "2022-01-18", "company": "Microsoft Corporation", "event": "Anuncio Compra Activision"},
-        {"date": "2013-09-17", "company": "Take-Two Interactive", "event": "Lanzamiento GTA V"}
+        {"date": "2022", "company": "Take-Two Interactive", "event": "Adquisición de Zynga por $12.7 mil millones"},
+        {"date": "2022", "company": "Square Enix", "event": "Venta de estudios occidentales a Embracer Group"},
+        {"date": "2023", "company": "Microsoft Corporation", "event": "Adquisición de Activision Blizzard por $75.4 mil millones"},
+        {"date": "2025", "company": "Tencent Holdings", "event": "Inversión de 1.160 millones de euros en Vantage Studios de Ubisoft"},
+        {"date": "2025", "company": "Paradox Interactive", "event": "Lanzamiento de Europa Universalis V"},
+        {"date": "2025", "company": "Nexon", "event": "Lanzamiento de MapleStory N"},
+        {"date": "2025-03", "company": "Roblox", "event": "Presentación del sistema de IA 'Roblox Cube'"},
+        {"date": "2025-07", "company": "Embracer Group", "event": "División en tres entidades públicas independientes"},
+        {"date": "2026", "company": "Nintendo Co., Ltd.", "event": "Lanzamiento inminente de Nintendo Switch 2"},
+        {"date": "2026", "company": "Electronic Arts", "event": "Adquisición por $55 mil millones por PIF y Silver Lake"},
+        {"date": "2026-02", "company": "NetEase", "event": "Anuncio de la expansión 'Hexi' para Where Winds Meet"},
+        {"date": "2026-02", "company": "Konami Group", "event": "Lanzamiento de actualización masiva eFootball 2026"},
+        {"date": "2026-09", "company": "Sony Group Corporation", "event": "Eliminación de la marca PlayStation Network (PSN)"}
     ]
 }

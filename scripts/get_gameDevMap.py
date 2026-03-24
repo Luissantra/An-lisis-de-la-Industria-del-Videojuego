@@ -205,56 +205,61 @@ def geocode_studios(input_csv, output_csv, cache_csv="geocode_cache.csv"):
             print(f"[geocode error] {query!r}: {e}")
             return None
 
-    # Preparar el CSV de salida (append)
-    output_exists = os.path.exists(output_csv)
-    fieldnames = list(df.columns) + ['Latitude', 'Longitude']
+    # Asegurarnos de que las columnas existan en el DataFrame base
+    if 'Latitude' not in df.columns: df['Latitude'] = None
+    if 'Longitude' not in df.columns: df['Longitude'] = None
+
+    fieldnames = list(df.columns)
 
     with open(output_csv, mode='a', newline='', encoding='utf-8') as out_f:
         writer = csv.DictWriter(out_f, fieldnames=fieldnames)
         if not output_exists:
             writer.writeheader()
 
-        # Geocodificar solo direcciones únicas que no estén en cache y no estén ya en el CSV de salida
-        unique_queries = df['query_address'].dropna().unique()
-        to_geocode = [q for q in unique_queries if q and q not in cache and q not in already_done]
-        total = len(to_geocode)
+        # Iteramos sobre todas las filas del DataFrame
+        for idx, row in df.iterrows():
+            query = row.get('query_address')
+            
+            # 1. Si esta dirección ya se procesó y guardó en el CSV en una ejecución anterior, la saltamos.
+            if query in already_done:
+                continue
+                
+            lat = row.get('Latitude')
+            lon = row.get('Longitude')
+            
+            # 2. LA MAGIA: Si no trae coordenadas previas (ej. inyectadas desde el JSON notable)...
+            if pd.isna(lat) or pd.isna(lon) or str(lat).strip() == '':
+                # ... miramos en la caché ...
+                if query in cache:
+                    lat, lon = cache[query]
+                # ... y si no está en la caché, llamamos a Nominatim.
+                else:
+                    print(f"Geocodificando nueva ubicación: {query}")
+                    loc = safe_geocode(query)
+                    lat = loc.latitude if loc else None
+                    lon = loc.longitude if loc else None
+                    cache[query] = (lat, lon)
+                    
+                    # Guardamos incrementalmente en caché
+                    cache_df = pd.DataFrame(
+                        [{"query_address": q, "Latitude": v[0], "Longitude": v[1]} for q, v in cache.items()]
+                    )
+                    cache_df.to_csv(cache_csv, index=False, encoding='utf-8')
 
-        print(f"Direcciones únicas: {len(unique_queries)} (cache: {len(unique_queries) - total} ya resueltas)")
-        if total:
-            print(f"Geocodificando {total} direcciones nuevas (esto puede tardar varios minutos)...")
+            # 3. Guardamos la fila final (ya sea con las coordenadas del JSON o las de Nominatim)
+            row_dict = row.to_dict()
+            row_dict['Latitude'] = lat
+            row_dict['Longitude'] = lon
+            writer.writerow(row_dict)
+            
+            already_done.add(query) # Lo marcamos como hecho para esta sesión
 
-        for i, query in enumerate(to_geocode, start=1):
-            print(f"[{i}/{total}] Geocodificando: {query}")
-            loc = safe_geocode(query)
-            lat = loc.latitude if loc else None
-            lon = loc.longitude if loc else None
-
-            cache[query] = (lat, lon)
-
-            # Añadir fila al CSV de salida
-            row = df[df['query_address'] == query].iloc[0].to_dict()
-            row['Latitude'] = lat
-            row['Longitude'] = lon
-            writer.writerow(row)
-
-            # Guardar cache incremental cada 50 entradas
-            if i % 50 == 0:
-                cache_df = pd.DataFrame(
-                    [
-                        {"query_address": q, "Latitude": v[0], "Longitude": v[1]}
-                        for q, v in cache.items()
-                    ]
-                )
-                cache_df.to_csv(cache_csv, index=False, encoding='utf-8')
-
-        # Guardar cache final
-        cache_df = pd.DataFrame(
-            [
-                {"query_address": q, "Latitude": v[0], "Longitude": v[1]}
-                for q, v in cache.items()
-            ]
-        )
-        cache_df.to_csv(cache_csv, index=False, encoding='utf-8')
+        # Guardar cache final por seguridad
+        if cache:
+            cache_df = pd.DataFrame(
+                [{"query_address": q, "Latitude": v[0], "Longitude": v[1]} for q, v in cache.items()]
+            )
+            cache_df.to_csv(cache_csv, index=False, encoding='utf-8')
 
     # Retornar el DataFrame completo con lat/lon (cargando el archivo de salida para reflejar el progreso)
     result_df = pd.read_csv(output_csv, dtype=str)
@@ -268,7 +273,7 @@ def obtener_datos_gamedevmap(
     max_locations=None, 
     output=None, 
     skip_geocode=False, 
-    delay=1.0, 
+    delay=.4, 
     force_scrape=False
 ):
     if output is None:

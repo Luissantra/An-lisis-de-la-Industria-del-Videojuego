@@ -56,6 +56,8 @@ def prepare_time_filtered_data(df, timeframe):
 def render_metrics_cards(df, selected_companies):
     if df.empty or not selected_companies: return
     st.markdown("### Resumen de Mercado (Último Cierre)")
+    
+    # Usamos columnas dinámicas
     cols = st.columns(len(selected_companies))
     
     for i, company in enumerate(selected_companies):
@@ -64,15 +66,22 @@ def render_metrics_cards(df, selected_companies):
             latest = comp_data.iloc[-1]
             precio_actual = latest['Close']
             var_diaria = latest['Daily_Return_%']
-            # Rendimiento del periodo seleccionado (el que hemos recalculado)
             var_periodo = latest['Period_Return_%'] 
             
             with cols[i]:
+                # 1. Métrica principal limpia (Streamlit detectará el +/- automáticamente)
                 st.metric(
-                    label=company,
+                    label=f"🏢 {company}",
                     value=f"${precio_actual:.2f}",
-                    delta=f"{var_periodo:.2f}% en el período (Hoy: {var_diaria:.2f}%)"
+                    delta=f"{var_periodo:+.2f}% (Rendimiento del periodo)"
                 )
+                
+                # 2. Dato diario sutil debajo
+                color_diario = "#26A69A" if var_diaria >= 0 else "#EF5350" # Verde y Rojo modernos
+                flecha = "▲" if var_diaria >= 0 else "▼"
+                st.markdown(
+                    f"<span style='color:{color_diario}; font-size:14px;'><b>{flecha} {abs(var_diaria):.2f}%</b> en el último día de cotización</span>",
+                      unsafe_allow_html=True)
 
 def render_market_module(df_market, selected_companies, benchmark="Ninguno"):
     if not selected_companies or df_market.empty:
@@ -82,10 +91,15 @@ def render_market_module(df_market, selected_companies, benchmark="Ninguno"):
     # 1. Controles de Visualización
     col1, col2 = st.columns([1, 1])
     with col1:
-        vista = st.radio("Modo de Análisis:", ["📈 Comparativa", "🕯️ Velas Japonesas"], horizontal=True)
+        vista = st.radio("Modo de Análisis:", ["Comparativa", "Velas Japonesas"], horizontal=True)
     with col2:
-        timeframe = st.select_slider("Marco Temporal:", options=["1M", "6M", "1Y", "5Y", "Max"], value="5Y")
-
+        # Cambiamos el slider por botones de radio horizontales, el estándar en apps de finanzas
+        timeframe = st.radio(
+            "Marco Temporal:", 
+            options=["1M", "6M", "1Y", "5Y", "Max"], 
+            index=3, # El índice 3 corresponde a "5Y" por defecto
+            horizontal=True
+        )
     # 2. Procesamos los datos con los filtros seleccionados
     df_processed = prepare_time_filtered_data(df_market, timeframe)
 

@@ -1,14 +1,32 @@
 import folium
 import pandas as pd
 from folium.plugins import MarkerCluster
+import urllib.parse
 
 def create_interactive_map(df, center=[20, 0], zoom=2):
     """
     Crea un mapa interactivo utilizando Folium para visualizar 
     la ubicación de los estudios de videojuegos de forma intereactiva.
     """
-    # Cargar el mapa base del mundo
-    m = folium.Map(location=center, zoom_start=zoom, tiles='CartoDB dark_matter')
+    # 1. Inicializamos el mapa SIN una capa base por defecto (tiles=None)
+    m = folium.Map(location=center, zoom_start=zoom, tiles=None)
+
+    # 2. Añadimos nuestras propias capas base
+    # Tema Oscuro (Por defecto)
+    folium.TileLayer('cartodbdark_matter', name='Tema Oscuro').add_to(m)
+    
+    # Tema Claro
+    folium.TileLayer('cartodbpositron', name='Tema Claro').add_to(m)
+    
+    # Vista Satélite (usando la API pública de Esri)
+    folium.TileLayer(
+        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attr='Esri',
+        name='Satélite',
+        overlay=False,
+        control=True
+    ).add_to(m)
+
 
     # Estilos personalizados para las regiones
     region_styles = {
@@ -66,13 +84,28 @@ def create_interactive_map(df, center=[20, 0], zoom=2):
         for idx, row in valid_locations.iterrows():
             if pd.notna(row['Lat']) and pd.notna(row['Lon']):
                 
+                # Limpiamos y preparamos el texto para la URL
+                search_query = f"{row['Studio Name']} {row['City']} {row['Country']}"
+                safe_query = urllib.parse.quote_plus(search_query)
+                maps_url = f"https://www.google.com/maps/search/?api=1&query={safe_query}"
+
+                # Construimos el HTML del popup con un enlace a Google Maps
                 popup_html = f"""
                 <div style="font-family: Arial; min-width: 200px;">
                     <h4 style="margin-bottom: 5px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 3px;">
                         {row['Studio Name']}
                     </h4>
-                    <p style="margin: 3px 0; color: #555;"><b>🌍 Region:</b> {region}</p>
-                    <p style="margin: 3px 0; color: #555;"><b>📍 Location:</b> {row['City']}, {row['Country']}</p>
+                    <p style="margin: 3px 0; color: #555;"><b>🌍 Región:</b> {region}</p>
+                    <p style="margin: 3px 0; color: #555;"><b>📍 Ubicación:</b> {row['City']}, {row['Country']}</p>
+                    
+                    <div style="margin-top: 12px; text-align: center;">
+                        <a href="{maps_url}" target="_blank" 
+                           style="background-color: {pin_color}; color: white; padding: 6px 12px; 
+                                  text-decoration: none; border-radius: 4px; font-size: 13px; 
+                                  display: inline-block; width: 80%; font-weight: bold;">
+                           📍 Ver en Google Maps
+                        </a>
+                    </div>
                 </div>
                 """
                 
@@ -85,8 +118,24 @@ def create_interactive_map(df, center=[20, 0], zoom=2):
 
         # Capa completa regional
         region_layer.add_to(m)
-  # Añadimos control de capas para poder activar/desactivar regiones
+    # Añadimos control de capas para poder activar/desactivar regiones
     folium.LayerControl(collapsed=False).add_to(m)
+
+    # Auto-Zoom dinámico
+    # Verificamos que el dataframe no esté vacío
+    if not df.empty:
+        # Obtenemos los límites de latitud y longitud para ajustar el zoom
+        sw = [df['Lat'].min(), df['Lon'].min()]  # Suroeste
+        ne = [df['Lat'].max(), df['Lon'].max()] # Noreste
+
+        # comprobamos que no sean valores nulos
+        if pd.notna(sw[0]) and pd.notna(sw[1]):
+            # caso especial para un solo punto, ajustamos el zoom manualmente
+            if sw == ne:
+                m.location = sw
+                m.zoom_start = 10
+            else:
+                m.fit_bounds([sw, ne], padding=(35, 35))  # Ajustamos el zoom para mostrar todos los puntos
 
     return m
 
