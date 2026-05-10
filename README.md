@@ -1,90 +1,39 @@
-# 🎮 Análisis de la Industria del Videojuego
+# Análisis de la Industria del Videojuego - Dashboard
 
-Un dashboard interactivo y pipeline de datos (ETL) construido en Python para analizar la industria del videojuego desde tres dimensiones fundamentales: **Geográfica, Financiera y Corporativa**.
+Este proyecto es una plataforma de análisis de datos e inteligencia de negocios enfocada en la evolución histórica y comercial de la industria del videojuego. Utiliza herramientas de visualización avanzadas para explorar el ciclo de vida de las plataformas, ventas globales y el tamaño de los catálogos de juegos.
 
-Este proyecto extrae datos de múltiples fuentes (APIs, web scraping, bases de datos financieras), los procesa y centraliza en una base de datos relacional SQLite, para luego visualizarlos a través de una aplicación web de alto rendimiento usando **Streamlit**.
+## 🚀 Características
 
----
+- **Roadmap de Plataformas:** Visualización interactiva tipo línea de tiempo que organiza las consolas por fabricante.
+- **Identidad Visual Consistente:** Sistema de colores predefinido para los principales actores de la industria (Sony, Nintendo, Microsoft, Sega, etc.).
+- **Métricas Dinámicas:** Representación visual del éxito de mercado mediante el tamaño de burbujas, integrando ventas en millones y conteo de títulos disponibles.
+- **Interfaz Profesional:** Gráficos optimizados con temas oscuros (`plotly_dark`) y tooltips detallados.
 
-## ✨ Características Principales
+## 🛠️ Tecnologías Utilizadas
 
-El dashboard está dividido en tres módulos clave:
+- **Python 3.x**
+- **Pandas:** Procesamiento y limpieza de datos.
+- **Plotly Express:** Generación de gráficos interactivos.
+- **Dashboard Framework:** (Estructura preparada para integración con Streamlit o Dash).
 
-1. **🌍 Mapa de Estudios (Dimensión Geográfica):**
-   * Visualización interactiva con `Folium` de miles de estudios de desarrollo alrededor del mundo.
-   * Datos obtenidos vía Web Scraping y geocodificados usando Nominatim (OpenStreetMap).
-   * Clústeres dinámicos por región y enlaces directos a Google Maps.
+## 📂 Estructura del Proyecto
 
-2. **📈 Análisis de Mercado (Dimensión Financiera):**
-   * Histórico de cotizaciones en bolsa de los gigantes del sector (Sony, Microsoft, Nintendo, EA, Tencent, etc.).
-   * Gráficos interactivos de líneas (retornos porcentuales) y Velas Japonesas (candlestick) con medias móviles (SMA) y volumen.
-   * Hitos históricos superpuestos en las gráficas (ej. fecha de lanzamiento de consolas o adquisiciones importantes).
-   * Datos impulsados por `yfinance`.
-
-3. **🏢 Estructura Corporativa (Dimensión Empresarial):**
-   * Análisis visual mediante gráficos *Sunburst* de la relación entre Conglomerados (Parent) y Estudios Filiales.
-   * Integración con la **API de RAWG** para obtener automáticamente los metadatos del juego más destacado de cada estudio, género y su nota en Metacritic.
-   * Rendimiento ultra rápido gracias a cruces de datos nativos en SQL.
-
----
-
-## 🏗️ Arquitectura y Tecnologías
-
-* **Frontend:** Streamlit
-* **Procesamiento de Datos:** Pandas, Numpy
-* **Visualización:** Plotly, Folium
-* **Base de Datos:** SQLite (`videogames.db` como *Single Source of Truth*)
-* **ETL & Extracción:** `requests`, `BeautifulSoup` (Scraping), `yfinance` (Bolsa), RAWG API (Juegos), Wikipedia API (Logos).
-
----
-
-## 🚀 Instalación y Configuración
-
-### 1. Clonar el repositorio
-```bash
-git clone https://github.com/Luissantra/An-lisis-de-la-Industria-del-Videojuego.git
-cd "An-lisis-de-la-Industria-del-Videojuego"
+```text
+├── dashboard/
+│   ├── charts_platforms.py   # Lógica de visualización de plataformas
+│   └── config.py             # Configuraciones globales
+├── data/                     # Datasets de la industria (Ventas, fechas, fabricantes)
+└── README.md
 ```
 
-### 2. Crear entorno virtual e instalar dependencias
-```bash
-python -m venv venv
-source venv/bin/activate  # En macOS/Linux
-# venv\Scripts\activate   # En Windows
+## 📊 Visualizaciones Principales
 
-pip install -r requirements.txt
-```
+### Roadmap Timeline
+El módulo `charts_platforms.py` genera una línea de tiempo donde el eje Y segmenta a los fabricantes y el eje X representa el año de lanzamiento. El tamaño de cada punto se calcula dinámicamente:
+1. Si existen datos de ventas, se utiliza `units_sold_millions`.
+2. Si no hay ventas registradas, se normaliza según el `games_count` (cantidad de juegos).
 
-### 3. Variables de entorno (API Keys)
-Para descargar la información de los videojuegos (notas de Metacritic, géneros, etc.), el proyecto utiliza la API de RAWG. Necesitas obtener una clave gratuita en rawg.io y configurarla en tu terminal:
+## 📝 Requisitos
 
-```bash
-export RAWG_API_KEY="tu_clave_api_aqui"
-```
-*(En Windows usa `set RAWG_API_KEY="tu_clave_api_aqui"`).*
-
----
-
-## 🕹️ Uso del Proyecto
-
-El proyecto se divide en dos partes: el **Pipeline de Datos (Backend)** y el **Dashboard (Frontend)**.
-
-### 1. Actualizar los Datos (Pipeline ETL)
-Puedes ejecutar todo el proceso de extracción, transformación y carga (ETL) utilizando el orquestador principal:
-
-```bash
-python main.py
-```
-*Nota: Puedes usar parámetros como `--skip-extract` si solo quieres reconstruir la base de datos sin volver a descargar cosas.*
-
-Para actualizar **solo los metadatos de los juegos** desde la API de RAWG:
-```bash
-python scripts/etl_games.py
-```
-
-### 2. Ejecutar el Dashboard
-Una vez que la base de datos `videogames.db` esté generada, levanta la aplicación web con:
-
-```bash
-streamlit run dashboard/app.py
-```
+Instala las dependencias necesarias con:
+`pip install pandas plotly`
