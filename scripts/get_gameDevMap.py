@@ -6,24 +6,33 @@ import csv
 import certifi
 import pandas as pd
 import requests
+import sys
+from pathlib import Path
+
+# Agregamos el directorio raíz al path para que Python encuentre el módulo 'config'
+root_path = str(Path(__file__).resolve().parent.parent)
+if root_path not in sys.path:
+    sys.path.insert(0, root_path)
+
 from bs4 import BeautifulSoup
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 import config
-import json
+import sqlite3
 
 # Force requests/geopy to use certifi CA bundle (fixes SSL verification issues on macOS)
 os.environ.setdefault('SSL_CERT_FILE', certifi.where())
 
 
 def cargar_estudios_notables():
-    """Carga la lista de estudios notables desde el archivo JSON."""
-    ruta_json = config.NOTABLE_STUDIOS_JSON
+    """Carga la lista de estudios notables desde la base de datos."""
     try:
-        with open(ruta_json, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"[Advertencia] No se encontró el archivo {ruta_json}. Se usará una lista vacía.")
+        conn = sqlite3.connect(config.DATABASE_PATH)
+        df = pd.read_sql_query('SELECT name as Company_Name, city as City, country as Country FROM notable_studios', conn)
+        conn.close()
+        return df.to_dict('records')
+    except Exception as e:
+        print(f"[Advertencia] Error al cargar notables desde DB: {e}")
         return []
 
 def get_available_locations(base_url):
@@ -132,10 +141,10 @@ def extract_gamedev_data(url, location=None):
         print(f"Error durante el scraping: {e}")
         return pd.DataFrame()
 
-def geocode_studios(input_csv, output_csv, cache_csv="geocode_cache.csv"):
+def geocode_studios(input_csv, output_csv):
     """Lee un CSV con City/Country y crea otro CSV con Latitude/Longitude.
 
-    Se usa un cache en disco para no repetir consultas a Nominatim entre ejecuciones.
+    Se usa un cache en SQLite para no repetir consultas a Nominatim entre ejecuciones.
     El archivo de salida se va escribiendo en modo append para permitir reanudar.
     """
     print("--- Paso 2: Geocodificando ciudades (esto tomará tiempo) ---")
@@ -146,19 +155,24 @@ def geocode_studios(input_csv, output_csv, cache_csv="geocode_cache.csv"):
     df['Country'] = df['Country'].fillna('')
     df['query_address'] = df['City'] + ", " + df['Country']
 
-    # Cargar cache previo (si existe)
+    # Cargar cache desde SQLite
     cache = {}
-    if os.path.exists(cache_csv):
-        try:
-            cache_df = pd.read_csv(cache_csv, dtype=str)
-            for _, row in cache_df.iterrows():
-                q = row.get('query_address')
-                lat = row.get('Latitude')
-                lon = row.get('Longitude')
-                if pd.notna(q) and pd.notna(lat) and pd.notna(lon):
-                    cache[q] = (float(lat), float(lon))
-        except Exception:
-            cache = {}
+    conn = sqlite3.connect(config.DATABASE_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS geocode_cache (
+                        query_address TEXT PRIMARY KEY,
+                        latitude REAL,
+                        longitude REAL
+                      )''')
+    conn.commit()
+
+    try:
+        cursor.execute("SELECT query_address, latitude, longitude FROM geocode_cache")
+        for r in cursor.fetchall():
+            if pd.notna(r[0]) and pd.notna(r[1]) and pd.notna(r[2]):
+                cache[r[0]] = (r[1], r[2])
+    except Exception:
+        pass
 
     # Determinar qué ya fue procesado (para poder reanudar en caso de interrupción)
     already_done = set()
@@ -240,11 +254,9 @@ def geocode_studios(input_csv, output_csv, cache_csv="geocode_cache.csv"):
                     lon = loc.longitude if loc else None
                     cache[query] = (lat, lon)
                     
-                    # Guardamos incrementalmente en caché
-                    cache_df = pd.DataFrame(
-                        [{"query_address": q, "Latitude": v[0], "Longitude": v[1]} for q, v in cache.items()]
-                    )
-                    cache_df.to_csv(cache_csv, index=False, encoding='utf-8')
+                    # Guardamos incrementalmente en la base de datos
+                    cursor.execute("INSERT OR REPLACE INTO geocode_cache (query_address, latitude, longitude) VALUES (?, ?, ?)", (query, lat, lon))
+                    conn.commit()
 
             # 3. Guardamos la fila final (ya sea con las coordenadas del JSON o las de Nominatim)
             row_dict = row.to_dict()
@@ -254,16 +266,11 @@ def geocode_studios(input_csv, output_csv, cache_csv="geocode_cache.csv"):
             
             already_done.add(query) # Lo marcamos como hecho para esta sesión
 
-        # Guardar cache final por seguridad
-        if cache:
-            cache_df = pd.DataFrame(
-                [{"query_address": q, "Latitude": v[0], "Longitude": v[1]} for q, v in cache.items()]
-            )
-            cache_df.to_csv(cache_csv, index=False, encoding='utf-8')
+    conn.close()
 
     # Retornar el DataFrame completo con lat/lon (cargando el archivo de salida para reflejar el progreso)
     result_df = pd.read_csv(output_csv, dtype=str)
-    print(f"Geocodificación completada: {len(result_df)} filas guardadas en {output_csv} (cache: {cache_csv})")
+    print(f"Geocodificación completada: {len(result_df)} filas guardadas en {output_csv}")
     return result_df
 
 # --- EJECUCIÓN PRINCIPAL ---
@@ -372,8 +379,3 @@ if __name__ == "__main__":
         delay=args.delay,
         force_scrape=args.force_scrape
     )
-
-
-
-
-

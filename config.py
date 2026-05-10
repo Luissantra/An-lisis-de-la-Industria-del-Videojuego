@@ -11,7 +11,6 @@ DATABASE_DIR = DATA_DIR / "database"
 
 # Rutas a archivos específicos
 TICKERS_JSON = BASE_DIR / "config_data" / "tickers.json"
-NOTABLE_STUDIOS_JSON = BASE_DIR / "config_data" / "notable_studios.json"
 MARKET_VISUALS_JSON = BASE_DIR / "config_data" / "market_visuals.json"
 
 RAW_GAMEDEVMAP_CSV = RAW_DATA_DIR / "raw_studios_geocoded.csv"
@@ -22,7 +21,16 @@ MARKETDATA_CSV = PROCESSED_DATA_DIR / "market_data.csv"
 
 DATABASE_PATH = DATABASE_DIR / "videogames.db"
 
+# Recursos estáticos (UI)
+ASSETS_DIR = BASE_DIR / "dashboard" / "assets"
+LOGOS_DIR = ASSETS_DIR / "logos"
+
 def init_environment():
     """Crea la estructura de directorios necesaria si no existe."""
-    for directory in [RAW_DATA_DIR, PROCESSED_DATA_DIR, DATABASE_DIR]:
+    for directory in [RAW_DATA_DIR, PROCESSED_DATA_DIR, DATABASE_DIR, ASSETS_DIR, LOGOS_DIR]:
         directory.mkdir(parents=True, exist_ok=True)
+
+if __name__ == "__main__":
+    print("Inicializando entorno de directorios...")
+    init_environment()
+    print("¡Estructura de carpetas lista!")

@@ -1,8 +1,14 @@
 import pandas as pd
 from sqlalchemy import create_engine
 import os
+import sys
+from pathlib import Path
 
-# Importación limpia sin hacks
+# Agregamos el directorio raíz al path para que Python encuentre el módulo 'config'
+root_path = str(Path(__file__).resolve().parent.parent)
+if root_path not in sys.path:
+    sys.path.insert(0, root_path)
+
 import config
 
 def build_database():

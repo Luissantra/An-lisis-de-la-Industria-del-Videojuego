@@ -2,12 +2,20 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import sqlite3
+import sys
 from pathlib import Path
+
+# Agregamos el directorio raíz al path para que Python encuentre el módulo 'config'
+root_path = str(Path(__file__).resolve().parent.parent)
+if root_path not in sys.path:
+    sys.path.insert(0, root_path)
+
 import config
 
 # Importamos nuestros módulos de visualización
 from view_map import render_map_module
 from view_market import render_market_module
+from view_corporate import render_corporate_module
 
 
 # Page Configuration
@@ -91,7 +99,7 @@ df_studios = load_geo_data()
 st.title("🎮 Análisis de la Industria del Videojuego")
 menu = st.sidebar.radio(
     "Selecciona una dimensión:",
-    ["Mapa de estudios", "Análisis de mercado"]
+    ["Mapa de estudios", "Análisis de mercado", "Estructura corporativa"]
 )
 
 st.sidebar.divider()
@@ -145,8 +153,6 @@ elif menu == "Análisis de mercado":
         df_market = load_dynamic_market_data(query_companies)
         render_market_module(df_market, selected_companies, benchmark=selected_benchmark)
 
-
-
-
-
-
+# --- Módulo 3: Dimensión Corporativa ---
+elif menu == "Estructura corporativa":
+    render_corporate_module()

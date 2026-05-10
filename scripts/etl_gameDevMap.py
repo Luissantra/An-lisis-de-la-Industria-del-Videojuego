@@ -1,5 +1,13 @@
 import pandas as pd
 import pycountry_convert as pc
+import sys
+from pathlib import Path
+
+# Agregamos el directorio raíz al path para que Python encuentre el módulo 'config'
+root_path = str(Path(__file__).resolve().parent.parent)
+if root_path not in sys.path:
+    sys.path.insert(0, root_path)
+
 import config
 
 def obtain_region(country_name):
