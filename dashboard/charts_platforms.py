@@ -55,5 +55,26 @@ def create_roadmap_timeline(df):
         margin=dict(t=20, l=20, r=20, b=20), height=550,
         showlegend=False # Ocultamos la leyenda ya que el Eje Y ya dice el nombre
     )
+
+    # Añadir bandas de generaciones para el look de infografía
+    generaciones = [
+        (1980, 1987, "3ª Gen", "rgba(255, 255, 255, 0.03)"),
+        (1987, 1993, "4ª Gen", "rgba(255, 255, 255, 0.0)"),
+        (1993, 1998, "5ª Gen", "rgba(255, 255, 255, 0.03)"),
+        (1998, 2004, "6ª Gen", "rgba(255, 255, 255, 0.0)"),
+        (2004, 2012, "7ª Gen", "rgba(255, 255, 255, 0.03)"),
+        (2012, 2020, "8ª Gen", "rgba(255, 255, 255, 0.0)"),
+        (2020, 2030, "9ª Gen", "rgba(255, 255, 255, 0.03)")
+    ]
+
+    for start, end, label, color in generaciones:
+        fig.add_vrect(
+            x0=start, x1=end, 
+            fillcolor=color, opacity=1, 
+            layer="below", line_width=0,
+            annotation_text=label, 
+            annotation_position="top left",
+            annotation_font=dict(size=10, color="rgba(255, 255, 255, 0.2)")
+        )
     
     return fig

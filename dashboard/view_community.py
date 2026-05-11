@@ -39,25 +39,40 @@ def render_community_module():
     st.divider()
     
     # --- Renderizado de Gráficos ---
-    st.markdown("### 📊 Crítica Profesional vs. Usuarios")
+    st.markdown("### 🎭 Capítulo 1: El Espectro de la Crítica")
+    st.markdown("""
+    ¿Coincide la prensa con los jugadores? En este gráfico buscamos la correlación. Los títulos en la diagonal superior 
+    son éxitos unánimes, mientras que los alejados de la línea revelan discrepancias de criterio.
+    """)
     fig_scatter = plot_critic_vs_user(df_filtered)
     st.plotly_chart(fig_scatter, use_container_width=True)
     
     st.divider()
     
-    st.markdown("### 🧨 Top Controversias (Review Bombing)")
+    st.markdown("### 🧨 Capítulo 2: Review Bombing y Controversias")
+    st.markdown("""
+    Aquí visualizamos las mayores brechas negativas. Títulos donde la nota de los usuarios es significativamente 
+    inferior a la de la crítica, a menudo señal de controversias técnicas, políticas o de monetización.
+    """)
     fig_bar = plot_top_controversies(df_filtered)
     st.plotly_chart(fig_bar, use_container_width=True)
 
     st.divider()
 
-    st.markdown("### 🌟 Top Aclamación Popular")
+    st.markdown("### 🌟 Capítulo 3: Aclamación Popular")
+    st.markdown("""
+    El "Vox Populi". Juegos que, independientemente de su presupuesto o nota de prensa, han logrado conectar 
+    profundamente con la comunidad.
+    """)
     fig_acclaim = plot_top_acclaimed(df_filtered)
     st.plotly_chart(fig_acclaim, use_container_width=True)
 
     st.divider()
 
-    st.markdown("### 🚀 Hype y Tracción Social")
+    st.markdown("### 🚀 Capítulo 4: Hype y Tracción Social")
+    st.markdown("""
+    ¿Cuánto se habla de estos juegos? Analizamos el volumen de interacción y la tracción en redes sociales/búsquedas.
+    """)
     col_social, col_trends = st.columns([2, 1])
     
     with col_social:

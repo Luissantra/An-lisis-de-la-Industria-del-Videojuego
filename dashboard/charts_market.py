@@ -15,23 +15,27 @@ except Exception as e:
     BRAND_COLORS = {}
     KEY_EVENTS = []
 
-def create_comparison_line_chart(df, timeframe, benchmark="Ninguno", dynamic_events=None):
+def create_comparison_line_chart(df, timeframe, benchmark="Ninguno", dynamic_events=None, metrica_y="Rendimiento (%)"):
     """
-    Gráfico de líneas con colores de marca y recalculado en base 0.
+    Gráfico de líneas con colores de marca, con opción de Precio o Rendimiento.
     """
 
     # Subtítulo dinámico
     if timeframe == "Max": gran_text = "Evolución Mensual"
     elif timeframe == "5Y": gran_text = "Evolución Semanal"
     else: gran_text = "Evolución Diaria"
+    
+    y_col = 'Period_Return_%' if metrica_y == "Rendimiento (%)" else 'Close'
+    y_label = 'Retorno en Período (%)' if metrica_y == "Rendimiento (%)" else 'Precio de Cotización (USD)'
+    
     fig = px.line(
         df, 
         x='Date', 
-        y='Period_Return_%', 
+        y=y_col, 
         color='Company Name',
         color_discrete_map=BRAND_COLORS, 
-        title=f"Comparativa de Retorno en {timeframe} ({gran_text})",
-        labels={'Period_Return_%': 'Retorno en Período (%)', 'Date': 'Fecha', 'Company Name': 'Empresa'},
+        title=f"Comparativa de {metrica_y} en {timeframe} ({gran_text})",
+        labels={y_col: y_label, 'Date': 'Fecha', 'Company Name': 'Empresa'},
         template="plotly_dark"
     )
 
@@ -52,27 +56,41 @@ def create_comparison_line_chart(df, timeframe, benchmark="Ninguno", dynamic_eve
     if dynamic_events:
         all_events.extend(dynamic_events)
 
-    y_levels = [1.02, 1.10, 1.18]
-    for i, item in enumerate(all_events):
+    y_levels = [0.95, 0.85, 0.75] if metrica_y == "Precio (USD)" else [1.02, 1.10, 1.18]
+    event_counter = 1
+    
+    for item in all_events:
         event_date = pd.to_datetime(item["date"], errors='coerce')
         if pd.isna(event_date):
             continue
             
         if min_date <= event_date <= max_date and item["company"] in companies_in_df:
-            y_pos = y_levels[i % len(y_levels)]
+            # We place annotations dynamically at the bottom or top depending on the chart
+            y_pos = y_levels[event_counter % len(y_levels)]
+            
             fig.add_vline(x=event_date, line_width=1, line_dash="dash", line_color=BRAND_COLORS.get(item["company"], "white"))
             fig.add_annotation(
                 x=event_date, 
                 y=y_pos, 
                 yref='paper', 
-                text=item["event"],
+                text=f"<b>{event_counter}</b>",
                 showarrow=False,
-                font=dict(color=BRAND_COLORS.get(item["company"], "white"), size=9),
-                textangle=-45 
+                font=dict(color="black", size=10),
+                bgcolor=BRAND_COLORS.get(item["company"], "white"),
+                bordercolor="white",
+                borderwidth=1,
+                borderpad=3,
+                hovertext=item["event"]
             )
-    # Añadimos el sufijo "%" al eje Y y redondeamos el texto flotante a 2 decimales
-    fig.update_yaxes(ticksuffix="%")
-    fig.update_traces(hovertemplate="<b>%{x}</b><br>Retorno: %{y:.2f}%")
+            event_counter += 1
+            
+    # Formato del hover y ejes
+    if metrica_y == "Rendimiento (%)":
+        fig.update_yaxes(ticksuffix="%")
+        fig.update_traces(hovertemplate="<b>%{x}</b><br>Retorno: %{y:.2f}%")
+    else:
+        fig.update_yaxes(tickprefix="$")
+        fig.update_traces(hovertemplate="<b>%{x}</b><br>Precio: $%{y:.2f}")
 
     fig.update_layout(hovermode="x unified", margin=dict(t=80)) 
     return fig

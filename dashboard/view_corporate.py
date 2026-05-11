@@ -118,10 +118,17 @@ def render_corporate_module():
     st.divider()
 
     # 3. Representación Gráfica
+    # 3. Representación Gráfica
     if seleccion == "Global":
         st.subheader("🌍 Visión Macro (Ecosistema Completo)")
-        fig = create_sunburst_chart(df_corp_all)
         
+        st.markdown("### 🏛️ Capítulo 1: La Arquitectura del Monopolio")
+        st.markdown("""
+        La industria del videojuego está viviendo una era de **consolidación masiva**. Este gráfico *Sunburst* permite visualizar 
+        la jerarquía de propiedad: desde los grandes conglomerados (capa interna) hasta los estudios filiales (capa externa).
+        """)
+        
+        fig = create_sunburst_chart(df_corp_all)
         # Capturamos el evento de clic nativo (soportado en Streamlit >= 1.35)
         try:
             evento = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
@@ -136,15 +143,23 @@ def render_corporate_module():
             st.plotly_chart(fig, use_container_width=True)
             
         st.write("---")
-        st.markdown("#### 🏆 Análisis Global del Ecosistema")
         
-        st.markdown("##### 🎯 Consistencia y Distribución de Calidad Global (Metacritic)")
+        st.markdown("### 🎯 Capítulo 2: Consistencia y Distribución de Calidad")
+        st.markdown("""
+        ¿Quién es el publisher más consistente? La distribución de notas de Metacritic nos revela si un conglomerado 
+        apuesta por el **volumen** (muchos juegos con notas variadas) o por la **excelencia curada** (pocos juegos, todos sobresalientes).
+        """)
         fig_dist_global = create_score_distribution_chart(df_corp_all, is_global=True)
         if fig_dist_global:
             st.plotly_chart(fig_dist_global, use_container_width=True)
             
         st.write("---")
-        st.markdown("##### 🎲 Matriz de Portfolio (Volumen vs Calidad por Género)")
+        
+        st.markdown("### 🎲 Capítulo 3: Matriz de Portfolio (Especialización)")
+        st.markdown("""
+        Analizamos la relación entre el volumen de producción y la calidad media por género. Los puntos más grandes indican 
+        una mayor especialización en ese género específico.
+        """)
         df_games_all = get_all_games_data()
         fig_genres_global = create_genre_and_score_chart(df_games_all)
         if fig_genres_global:
@@ -153,7 +168,12 @@ def render_corporate_module():
             st.info("ℹ️ Ejecuta `etl_games_rawg.py` para habilitar gráficos de géneros y valoraciones.")
 
         st.divider()
-        st.markdown("#### 👥 Psicografía y Audiencia Global")
+        
+        st.markdown("### 👥 Capítulo 4: Psicografía y Audiencia Global")
+        st.markdown("""
+        ¿A quién venden los gigantes? La distribución por edades (ESRB) y el tiempo de juego medio nos dan pistas sobre 
+        la estrategia de retención de cada compañía.
+        """)
         col_esrb, col_play = st.columns(2)
         with col_esrb:
             fig_esrb = create_esrb_distribution_chart(df_games_all)
@@ -174,16 +194,16 @@ def render_corporate_module():
         
         st.write("---")
         
+        st.markdown("### 🏺 Capítulo 1: El ADN del Conglomerado")
+        st.markdown(f"Exploramos la composición interna de **{seleccion}**. La jerarquía nos muestra qué estudios tienen mayor peso en la producción total.")
+        
         col_grafico, col_lista = st.columns([1, 1.3])
         
         with col_grafico:
-            st.markdown("#### Jerarquía y Presencia Global")
             fig = create_treemap_chart(df_filtrado)
             st.plotly_chart(fig, use_container_width=True)
             
         with col_lista:
-            st.markdown("### 🎮 Directorio de Estudios")
-            
             # Preparamos el dataframe para visualización
             df_display = df_filtrado[['Studio Name', 'City', 'Country', 'Acquisition_Year', 'Total_Games', 'Top_Game', 'avg_metacritic']].copy()
             df_display.rename(columns={
@@ -200,17 +220,17 @@ def render_corporate_module():
                 df_display,
                 use_container_width=True,
                 hide_index=True,
-                height=400 # Altura ajustada para alinear con el gráfico Sunburst
+                height=400 
             )
 
         st.markdown("---")
         
-        st.markdown("#### 🏆 Análisis de Portfolio e Histórico de Expansión")
+        st.markdown("### 📈 Capítulo 2: Ritmo de Expansión y Dominio")
+        st.markdown("¿Cuándo se consolidó este gigante? La línea de tiempo muestra los hitos de adquisición y fundación de sus estudios actuales.")
         
         col_timeline, col_dist = st.columns([1.2, 1])
         
         with col_timeline:
-            st.markdown("##### 📈 Expansión (Adquisiciones/Fundaciones)")
             fig_timeline = create_acquisition_timeline_chart(df_filtrado, color=brand_color)
             if fig_timeline:
                 st.plotly_chart(fig_timeline, use_container_width=True)
@@ -218,7 +238,7 @@ def render_corporate_module():
                 st.info("ℹ️ No hay suficientes datos de años registrados para este conglomerado.")
                 
         with col_dist:
-            st.markdown("##### 🎯 Consistencia de Calidad (Metacritic)")
+            st.markdown("##### 🎯 Consistencia de Calidad")
             fig_dist = create_score_distribution_chart(df_filtrado, color=brand_color)
             if fig_dist:
                 st.plotly_chart(fig_dist, use_container_width=True)
@@ -227,12 +247,13 @@ def render_corporate_module():
                 
         fig_pie = create_genre_pie_chart(df_filtrado, color=brand_color)
         if fig_pie:
+            st.markdown("##### 🎭 Diversificación por Género")
             st.plotly_chart(fig_pie, use_container_width=True)
-        else:
-            st.info("ℹ️ No hay datos de géneros disponibles.")
 
         st.write("---")
-        st.markdown("##### 👥 Target de Audiencia y Engagement")
+        st.markdown("### 👥 Capítulo 3: Audiencia y Engagement Específico")
+        st.markdown(f"¿A quién se dirige **{seleccion}**? Analizamos el perfil de edad y el tiempo de juego medio de sus producciones.")
+        
         # Para el filtrado por conglomerado, necesitamos los juegos de ese conglomerado
         df_games_all = get_all_games_data()
         df_games_filt = df_games_all[df_games_all['conglomerate'] == seleccion]
@@ -244,4 +265,20 @@ def render_corporate_module():
         with c_play:
             fig_play = create_playtime_scatter_chart(df_games_filt)
             if fig_play: st.plotly_chart(fig_play, use_container_width=True)
-            st.info("ℹ️ No hay suficientes datos de géneros para este conglomerado.")
+            if df_games_filt.empty:
+                st.info("ℹ️ No hay suficientes datos de engagement para este conglomerado.")
+
+        st.write("---")
+        st.markdown("### 🏆 Capítulo 4: Los 10 Títulos Más Aclamados")
+        if not df_games_filt.empty:
+            df_top_10 = df_games_filt.sort_values(by='metacritic', ascending=False).head(10)
+            df_top_10 = df_top_10[['title', 'developer', 'metacritic', 'release_date']]
+            df_top_10.rename(columns={
+                'title': 'Título',
+                'developer': 'Desarrollador',
+                'metacritic': 'Metacritic',
+                'release_date': 'Lanzamiento'
+            }, inplace=True)
+            st.table(df_top_10)
+        else:
+            st.info("ℹ️ No hay datos de juegos disponibles para mostrar el Top 10.")

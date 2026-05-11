@@ -149,7 +149,7 @@ def build_database():
             res = connection.execute(text("PRAGMA table_info(studio_locations)"))
             cols = [row[1] for row in res]
             if 'studio_tier' not in cols:
-                connection.execute(text("ALTER TABLE studio_locations ADD COLUMN studio_tier TEXT DEFAULT 'Indie'"))
+                connection.execute(text("ALTER TABLE studio_locations ADD COLUMN studio_tier TEXT DEFAULT 'No Clasificado'"))
             if 'is_notable' not in cols:
                 connection.execute(text("ALTER TABLE studio_locations ADD COLUMN is_notable INTEGER DEFAULT 0"))
             

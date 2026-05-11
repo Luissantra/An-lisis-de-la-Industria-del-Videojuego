@@ -25,6 +25,22 @@ def render_platforms_module():
         st.warning("⚠️ No se encontraron datos. Ejecuta primero 'python scripts/etl_platforms.py'")
         return
 
+    # KPIs Agregados Superiores
+    total_consolas = len(df_platforms)
+    ventas_totales = df_platforms['units_sold_millions'].sum()
+    df_sorted_sales = df_platforms.sort_values(by='units_sold_millions', ascending=False)
+    top_consola = df_sorted_sales.iloc[0]['name'] if not df_sorted_sales.empty else "N/A"
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Plataformas Rastreadas", f"{total_consolas}")
+    with col2:
+        st.metric("Ventas Globales Estimadas", f"{ventas_totales:,.0f} Millones")
+    with col3:
+        st.metric("Plataforma Más Vendida", top_consola)
+        
+    st.divider()
+
     st.markdown("### Línea de Tiempo Histórica")
     fig = create_roadmap_timeline(df_platforms)
     
@@ -57,9 +73,9 @@ def render_platforms_module():
                         encoded = base64.b64encode(img_file.read()).decode()
                     st.markdown(f'<div style="text-align:center; padding: 20px; background-color: rgba(255,255,255,0.05); border-radius: 15px;"><img src="data:image/png;base64,{encoded}" style="max-width: 100%; max-height: 250px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));"></div>', unsafe_allow_html=True)
                 else:
-                    st.info("Imagen no disponible.")
+                    st.markdown(f'<div style="text-align:center; padding: 60px 20px; background-color: rgba(255,255,255,0.02); border-radius: 15px; border: 1px dashed rgba(255,255,255,0.1);"><h1 style="color: rgba(255,255,255,0.2); font-size: 80px; margin:0;">🎮</h1><p style="color: rgba(255,255,255,0.3); font-style: italic;">Sin imagen en archivo</p></div>', unsafe_allow_html=True)
             else:
-                st.info("Imagen no disponible.")
+                st.markdown(f'<div style="text-align:center; padding: 60px 20px; background-color: rgba(255,255,255,0.02); border-radius: 15px; border: 1px dashed rgba(255,255,255,0.1);"><h1 style="color: rgba(255,255,255,0.2); font-size: 80px; margin:0;">🎮</h1><p style="color: rgba(255,255,255,0.3); font-style: italic;">Sin imagen en archivo</p></div>', unsafe_allow_html=True)
                 
         with c2:
             st.markdown(f"<h2 style='color:{color_marca};'>{consola_data['name']}</h2>", unsafe_allow_html=True)

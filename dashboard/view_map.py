@@ -23,21 +23,42 @@ def render_map_module(filtered_df):
         aaa_count = len(filtered_df[filtered_df['studio_tier'] == 'AAA'])
         aa_count = len(filtered_df[filtered_df['studio_tier'] == 'AA'])
         indie_count = len(filtered_df[filtered_df['studio_tier'] == 'Indie'])
+        other_count = len(filtered_df[filtered_df['studio_tier'] == 'No Clasificado'])
 
-        # Mostramos las métricas en 6 columnas
-        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        st.markdown("""
+        <style>
+        .metric-card {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border-left: 4px solid #1f77b4;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .metric-card.aaa { border-left-color: #dc3545; }
+        .metric-card.aa { border-left-color: #ffc107; }
+        .metric-card.indie { border-left-color: #28a745; }
+        .metric-card.other { border-left-color: #6c757d; }
+        .metric-value { font-size: 24px; font-weight: bold; margin: 0; }
+        .metric-label { font-size: 13px; color: #aaa; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+        </style>
+        """, unsafe_allow_html=True)
+
+        col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
         with col1:
-            st.metric("Total Estudios", total_estudios)
+            st.markdown(f'<div class="metric-card"><p class="metric-value">{total_estudios}</p><p class="metric-label">🗺️ Total</p></div>', unsafe_allow_html=True)
         with col2:
-            st.metric("Países", total_paises)
+            st.markdown(f'<div class="metric-card"><p class="metric-value">{total_paises}</p><p class="metric-label">🌍 Países</p></div>', unsafe_allow_html=True)
         with col3:
-            st.metric("Región Principal", region_principal)
+            st.markdown(f'<div class="metric-card"><p class="metric-value" style="font-size:18px; padding-top:4px;">{region_principal}</p><p class="metric-label">📍 Top Región</p></div>', unsafe_allow_html=True)
         with col4:
-            st.metric("🏢 AAA", aaa_count)
+            st.markdown(f'<div class="metric-card aaa"><p class="metric-value" style="color:#dc3545;">{aaa_count}</p><p class="metric-label">🏢 AAA</p></div>', unsafe_allow_html=True)
         with col5:
-            st.metric("🎯 AA", aa_count)
+            st.markdown(f'<div class="metric-card aa"><p class="metric-value" style="color:#ffc107;">{aa_count}</p><p class="metric-label">🎯 AA</p></div>', unsafe_allow_html=True)
         with col6:
-            st.metric("🎮 Indie", indie_count)
+            st.markdown(f'<div class="metric-card indie"><p class="metric-value" style="color:#28a745;">{indie_count}</p><p class="metric-label">🎮 Indie</p></div>', unsafe_allow_html=True)
+        with col7:
+            st.markdown(f'<div class="metric-card other"><p class="metric-value" style="color:#6c757d;">{other_count}</p><p class="metric-label">❓ Otros</p></div>', unsafe_allow_html=True)
         
         st.divider() # Un pequeño separador visual antes del mapa
         
@@ -52,8 +73,8 @@ def render_map_module(filtered_df):
         
         st.divider() # Separador visual después del mapa
         
-        # Donut Chart for Tiers
-        col_blank, col_chart, col_blank2 = st.columns([1, 2, 1])
+        # Treemap for Tiers (Más profesional que el Donut)
+        col_blank, col_chart, col_blank2 = st.columns([1, 4, 1])
         with col_chart:
             tier_data = filtered_df['studio_tier'].value_counts().reset_index()
             tier_data.columns = ['Tier', 'Count']
@@ -61,24 +82,23 @@ def render_map_module(filtered_df):
             color_map = {
                 'AAA': '#dc3545', 
                 'AA': '#ffc107', 
-                'Indie': '#28a745'
+                'Indie': '#28a745',
+                'No Clasificado': '#6c757d'
             }
             
-            fig = px.pie(
+            fig = px.treemap(
                 tier_data, 
-                values='Count', 
-                names='Tier', 
-                hole=0.6,
+                path=['Tier'], 
+                values='Count',
                 color='Tier',
                 color_discrete_map=color_map,
-                title="Distribución de Tiers"
+                title="Distribución Jerárquica de Tiers"
             )
-            fig.update_traces(textinfo='percent', textfont_size=14)
+            fig.update_traces(textinfo="label+value+percent entry")
             fig.update_layout(
-                showlegend=True, 
-                legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
-                margin=dict(t=30, b=0, l=0, r=0),
-                height=350
+                margin=dict(t=40, b=10, l=10, r=10),
+                height=350,
+                template="plotly_dark"
             )
             st.plotly_chart(fig, use_container_width=True)
             

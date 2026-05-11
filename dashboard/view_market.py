@@ -98,10 +98,13 @@ def render_market_module(df_market, selected_companies, benchmark="Ninguno"):
         return
 
     # 1. Controles de Visualización
-    col1, col2 = st.columns([1, 1])
+    # 1. Controles de Visualización
+    col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
         vista = st.radio("Modo de Análisis:", ["Comparativa", "Velas Japonesas"], horizontal=True)
     with col2:
+        metrica_y = st.radio("Métrica:", ["Precio (USD)", "Rendimiento (%)"], horizontal=True)
+    with col3:
         # Cambiamos el slider por botones de radio horizontales, el estándar en apps de finanzas
         timeframe = st.radio(
             "Marco Temporal:", 
@@ -120,8 +123,16 @@ def render_market_module(df_market, selected_companies, benchmark="Ninguno"):
     dynamic_events = get_dynamic_market_events()
     
     if "Comparativa" in vista:
-        fig_line = create_comparison_line_chart(df_processed, timeframe, benchmark, dynamic_events)
+        fig_line = create_comparison_line_chart(df_processed, timeframe, benchmark, dynamic_events, metrica_y)
         st.plotly_chart(fig_line, use_container_width=True)
+        
+        # Leyenda de Hitos debajo del gráfico para evitar solapamiento
+        st.markdown("#### 📜 Cronología de Eventos Relevantes")
+        all_events = get_dynamic_market_events()
+        for i, event in enumerate(all_events):
+            if event["company"] in selected_companies or event["company"] == benchmark:
+                st.markdown(f"**{i+1}. {event['date']} ({event['company']})**: {event['event']}")
+                
     else:
         if len(selected_companies) > 1:
             tabs = st.tabs(selected_companies)
